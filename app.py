@@ -335,6 +335,28 @@ def find_nonstandard_class_ids(boxes: list) -> list:
     return sorted(invalid_ids)
 
 
+def canvas_rect_to_image_box(rect: dict, scale_factor: float, image_w: int, image_h: int):
+    left = float(rect.get("left", 0.0))
+    top = float(rect.get("top", 0.0))
+    width = float(rect.get("width", 0.0)) * float(rect.get("scaleX", 1.0))
+    height = float(rect.get("height", 0.0)) * float(rect.get("scaleY", 1.0))
+    if abs(width) <= 10 or abs(height) <= 10 or scale_factor <= 0:
+        return None
+
+    canvas_x1, canvas_x2 = sorted((left, left + width))
+    canvas_y1, canvas_y2 = sorted((top, top + height))
+    x1 = int(round(canvas_x1 / scale_factor))
+    y1 = int(round(canvas_y1 / scale_factor))
+    x2 = int(round(canvas_x2 / scale_factor))
+    y2 = int(round(canvas_y2 / scale_factor))
+
+    x1, x2 = max(0, min(x1, image_w)), max(0, min(x2, image_w))
+    y1, y2 = max(0, min(y1, image_h)), max(0, min(y2, image_h))
+    if (x2 - x1) < 3 or (y2 - y1) < 3:
+        return None
+    return [x1, y1, x2, y2]
+
+
 def normalize_model_names(raw_names) -> dict:
     if isinstance(raw_names, dict):
         return {int(k): str(v) for k, v in raw_names.items()}
@@ -1134,6 +1156,37 @@ def segment_bbox_with_sam2(predictor, frame_bgr: np.ndarray, bbox: list[float]):
     return polygon, float(scores[best_index])
 
 
+def apply_sam2_to_boxes(
+    image_bgr: np.ndarray,
+    boxes: list,
+    predictor,
+    *,
+    max_boxes: int | None = None,
+    only_missing: bool = True,
+):
+    updated_boxes = [dict(item) for item in boxes]
+    errors = []
+    processed = 0
+    limit = len(updated_boxes) if max_boxes is None else max(0, int(max_boxes))
+
+    for idx, item in enumerate(updated_boxes):
+        if processed >= limit:
+            break
+        if only_missing and item.get("mask_polygon"):
+            continue
+        try:
+            polygon, mask_confidence = segment_bbox_with_sam2(
+                predictor, image_bgr, item["box"]
+            )
+            updated_boxes[idx]["mask_polygon"] = polygon
+            updated_boxes[idx]["mask_confidence"] = mask_confidence
+            processed += 1
+        except Exception as error:
+            errors.append(f"Boîte #{idx + 1}: {error}")
+
+    return updated_boxes, {"processed": processed, "errors": errors}
+
+
 def video_frame_quality_score(frame_bgr: np.ndarray, confidence: float, bbox: list[float]) -> float:
     gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
     height, width = gray.shape[:2]
@@ -1479,6 +1532,7 @@ else:
 
 if st.session_state.get("pending_model_reload"):
     st.session_state.tab1_current_file = None
+    st.session_state.tab1_current_image_key = None
     st.session_state.tab1_boxes = []
     st.session_state.tab1_history = []
     if "canvas_key" in st.session_state:
@@ -1557,6 +1611,8 @@ if "tab1_boxes" not in st.session_state:
     st.session_state.tab1_boxes = []
 if "tab1_current_file" not in st.session_state:
     st.session_state.tab1_current_file = None
+if "tab1_current_image_key" not in st.session_state:
+    st.session_state.tab1_current_image_key = None
 if "tab1_history" not in st.session_state:
     st.session_state.tab1_history = []
 
@@ -1663,9 +1719,29 @@ if selected_section == NAV_SECTIONS[0]:
     img_bgr = None
     filename = None
     orig_w, orig_h = 0, 0
+    image_enable_sam2 = False
+    image_max_sam2_boxes = 20
     
     if work_mode == "📷 Une image":
         uploaded_file = st.file_uploader("Déposez une photo de véhicule", type=["jpg", "jpeg", "png", "webp"], key="uploader_tab1")
+        image_sam2_col, image_sam2_limit_col = st.columns(2)
+        with image_sam2_col:
+            image_enable_sam2 = st.checkbox(
+                "Activer SAM2 sur l'image",
+                value=True,
+                key="image_enable_sam2",
+                help="YOLO trouve les boîtes, puis SAM2 transforme ces boîtes en masques/polygones.",
+            )
+        with image_sam2_limit_col:
+            image_max_sam2_boxes = st.number_input(
+                "Boîtes maximum à segmenter",
+                1,
+                50,
+                20,
+                1,
+                disabled=not image_enable_sam2,
+                key="image_max_sam2_boxes",
+            )
         if uploaded_file is not None:
             uploaded_file.seek(0)
             file_bytes = np.frombuffer(uploaded_file.read(), np.uint8)
@@ -1941,6 +2017,7 @@ if selected_section == NAV_SECTIONS[0]:
                 st.session_state.batch_index = 0
                 st.session_state.tab1_boxes = []
                 st.session_state.tab1_current_file = None
+                st.session_state.tab1_current_image_key = None
                 st.session_state.canvas_key += 1
                 st.rerun()
                 
@@ -1987,9 +2064,13 @@ if selected_section == NAV_SECTIONS[0]:
         force_flag_key = f"tab1_force_reanalyse_{filename}"
         force_analysis = st.session_state.get(force_flag_key, False)
         existing_annotations_available = os.path.exists(existing_label_path)
+        image_content_hash = hashlib.sha256(img_bgr.tobytes()).hexdigest()[:16]
+        current_image_key = f"{work_mode}:{filename}:{image_content_hash}"
+        new_tab1_file = st.session_state.get("tab1_current_image_key") != current_image_key
 
-        if st.session_state.tab1_current_file != filename:
+        if new_tab1_file:
             st.session_state.tab1_current_file = filename
+            st.session_state.tab1_current_image_key = current_image_key
             st.session_state.tab1_boxes = (
                 [dict(item) for item in st.session_state.video_editor_boxes]
                 if work_mode == "🎥 Une vidéo"
@@ -1999,7 +2080,9 @@ if selected_section == NAV_SECTIONS[0]:
             st.session_state.canvas_key += 1
             st.session_state.tab1_loaded_existing_annotations[filename] = False
 
-        should_run_inference = work_mode != "🎥 Une vidéo"
+        should_run_inference = work_mode != "🎥 Une vidéo" and (
+            new_tab1_file or force_analysis
+        )
 
         if work_mode != "🎥 Une vidéo" and existing_annotations_available and not force_analysis:
             should_run_inference = False
@@ -2084,6 +2167,31 @@ if selected_section == NAV_SECTIONS[0]:
                     "Certaines détections ne correspondent pas aux classes de `best_2.pt` "
                     f"et n'ont pas été ajoutées : {ignored_text}."
                 )
+            if (
+                work_mode == "📷 Une image"
+                and image_enable_sam2
+                and st.session_state.tab1_boxes
+            ):
+                with st.spinner("🧩 Segmentation SAM2 des boîtes détectées..."):
+                    sam2_predictor, sam2_status = load_video_sam2_predictor()
+                    if sam2_predictor is None:
+                        st.warning(sam2_status)
+                    else:
+                        st.session_state.tab1_boxes, sam2_summary = apply_sam2_to_boxes(
+                            img_bgr,
+                            st.session_state.tab1_boxes,
+                            sam2_predictor,
+                            max_boxes=int(image_max_sam2_boxes),
+                        )
+                        if sam2_summary["processed"]:
+                            st.success(
+                                f"{sam2_status} — {sam2_summary['processed']} masque(s) ajouté(s)."
+                            )
+                        if sam2_summary["errors"]:
+                            st.warning(
+                                "SAM2 n'a pas réussi toutes les boîtes : "
+                                + " | ".join(sam2_summary["errors"][:3])
+                            )
             st.session_state[force_flag_key] = False
             st.session_state.tab1_loaded_existing_annotations[filename] = False
         else:
@@ -2195,34 +2303,25 @@ if selected_section == NAV_SECTIONS[0]:
                     # Get the last drawn object (new rectangle)
                     last_obj = objects[-1]
                     if last_obj["type"] == "rect":
-                        # Convert coordinates back to original size
-                        left = last_obj["left"]
-                        top = last_obj["top"]
-                        width = last_obj["width"]
-                        height = last_obj["height"]
-                        
-                        # Convert to absolute original coordinates
-                        x1 = int(left / scale_factor)
-                        y1 = int(top / scale_factor)
-                        x2 = int((left + width) / scale_factor)
-                        y2 = int((top + height) / scale_factor)
-                        
-                        # Ensure coordinates are within image bounds
-                        x1, x2 = max(0, min(x1, orig_w)), max(0, min(x2, orig_w))
-                        y1, y2 = max(0, min(y1, orig_h)), max(0, min(y2, orig_h))
-                        
-                        # Verify if this box is already added to avoid duplicates on refresh
-                        is_duplicate = False
-                        for existing in st.session_state.tab1_boxes:
-                            ex_x1, ex_y1, ex_x2, ex_y2 = existing['box']
-                            if abs(ex_x1 - x1) < 5 and abs(ex_y1 - y1) < 5 and abs(ex_x2 - x2) < 5 and abs(ex_y2 - y2) < 5:
-                                is_duplicate = True
-                                break
-                                
-                        if not is_duplicate and width > 10 and height > 10:
+                        image_box = canvas_rect_to_image_box(
+                            last_obj, scale_factor, orig_w, orig_h
+                        )
+                        if image_box is None:
+                            st.warning("La boîte dessinée est trop petite.")
+                        else:
+                            x1, y1, x2, y2 = image_box
+                            # Verify if this box is already added to avoid duplicates on refresh
+                            is_duplicate = False
+                            for existing in st.session_state.tab1_boxes:
+                                ex_x1, ex_y1, ex_x2, ex_y2 = existing['box']
+                                if abs(ex_x1 - x1) < 5 and abs(ex_y1 - y1) < 5 and abs(ex_x2 - x2) < 5 and abs(ex_y2 - y2) < 5:
+                                    is_duplicate = True
+                                    break
+
+                        if image_box is not None and not is_duplicate:
                             # Save history BEFORE adding
                             save_history("tab1")
-                            
+
                             st.session_state.tab1_boxes.append({
                                 'class_id': selected_class_id,
                                 'box': [x1, y1, x2, y2],
@@ -2285,7 +2384,55 @@ if selected_section == NAV_SECTIONS[0]:
                             save_history("tab1")
                             st.session_state.tab1_boxes.pop(idx)
                             st.warning(f"BBox #{idx+1} supprimée !")
-                            
+
+            if work_mode == "📷 Une image":
+                st.markdown("---")
+                st.markdown("### 🧩 Segmentation SAM2")
+                sam2_flash = st.session_state.pop("image_sam2_flash", None)
+                if sam2_flash:
+                    level, message = sam2_flash
+                    if level == "success":
+                        st.success(message)
+                    else:
+                        st.warning(message)
+                mask_count = sum(
+                    1
+                    for item in st.session_state.tab1_boxes
+                    if item.get("mask_polygon")
+                )
+                st.caption(
+                    f"{mask_count}/{len(st.session_state.tab1_boxes)} boîte(s) avec masque SAM2."
+                )
+                if st.button(
+                    "🧩 Segmenter les boîtes avec SAM2",
+                    use_container_width=True,
+                    disabled=not st.session_state.tab1_boxes,
+                ):
+                    sam2_predictor, sam2_status = load_video_sam2_predictor()
+                    if sam2_predictor is None:
+                        st.session_state.image_sam2_flash = ("warning", sam2_status)
+                    else:
+                        with st.spinner("Segmentation SAM2 en cours..."):
+                            updated_boxes, sam2_summary = apply_sam2_to_boxes(
+                                img_bgr,
+                                st.session_state.tab1_boxes,
+                                sam2_predictor,
+                                max_boxes=int(image_max_sam2_boxes),
+                                only_missing=True,
+                            )
+                        st.session_state.tab1_boxes = updated_boxes
+                        if sam2_summary["processed"]:
+                            st.session_state.image_sam2_flash = (
+                                "success",
+                                f"{sam2_status} — {sam2_summary['processed']} masque(s) ajouté(s).",
+                            )
+                        else:
+                            st.session_state.image_sam2_flash = (
+                                "warning",
+                                "Aucun nouveau masque ajouté. Les boîtes sont peut-être déjà segmentées.",
+                            )
+                    st.rerun()
+
             st.markdown("---")
             st.markdown("### 💾 Sauvegarder dans Data7.off")
             st.write("Enregistre l'image et ses boîtes au format YOLO.")
@@ -2351,6 +2498,7 @@ if selected_section == NAV_SECTIONS[0]:
                             st.session_state.batch_images = []
                             st.session_state.batch_index = 0
                             st.session_state.tab1_current_file = None
+                            st.session_state.tab1_current_image_key = None
                             st.session_state.tab1_boxes = []
                             st.session_state.canvas_key += 1
                             st.rerun()
@@ -2533,30 +2681,24 @@ if selected_section == NAV_SECTIONS[1]:
                     if len(objects_saved) > 0:
                         last_obj_saved = objects_saved[-1]
                         if last_obj_saved["type"] == "rect":
-                            left = last_obj_saved["left"]
-                            top = last_obj_saved["top"]
-                            width = last_obj_saved["width"]
-                            height = last_obj_saved["height"]
-                            
-                            x1 = int(left / scale_factor_saved)
-                            y1 = int(top / scale_factor_saved)
-                            x2 = int((left + width) / scale_factor_saved)
-                            y2 = int((top + height) / scale_factor_saved)
-                            
-                            x1, x2 = max(0, min(x1, saved_w)), max(0, min(x2, saved_w))
-                            y1, y2 = max(0, min(y1, saved_h)), max(0, min(y2, saved_h))
-                            
-                            is_duplicate = False
-                            for existing in st.session_state.tab2_boxes:
-                                ex_x1, ex_y1, ex_x2, ex_y2 = existing['box']
-                                if abs(ex_x1 - x1) < 5 and abs(ex_y1 - y1) < 5 and abs(ex_x2 - x2) < 5 and abs(ex_y2 - y2) < 5:
-                                    is_duplicate = True
-                                    break
-                                    
-                            if not is_duplicate and width > 10 and height > 10:
+                            image_box = canvas_rect_to_image_box(
+                                last_obj_saved, scale_factor_saved, saved_w, saved_h
+                            )
+                            if image_box is None:
+                                st.warning("La boîte dessinée est trop petite.")
+                            else:
+                                x1, y1, x2, y2 = image_box
+                                is_duplicate = False
+                                for existing in st.session_state.tab2_boxes:
+                                    ex_x1, ex_y1, ex_x2, ex_y2 = existing['box']
+                                    if abs(ex_x1 - x1) < 5 and abs(ex_y1 - y1) < 5 and abs(ex_x2 - x2) < 5 and abs(ex_y2 - y2) < 5:
+                                        is_duplicate = True
+                                        break
+
+                            if image_box is not None and not is_duplicate:
                                 # Save history before adding
                                 save_history("tab2")
-                                
+
                                 st.session_state.tab2_boxes.append({
                                     'class_id': selected_class_id,
                                     'box': [x1, y1, x2, y2],
