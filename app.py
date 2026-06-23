@@ -49,6 +49,15 @@ FINAL_DATASET_COLORS = {
 }
 
 APP_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(os.path.join(APP_BASE_DIR, ".env"))
+except ImportError:
+    pass
+
+BACKOFFICE_USERNAME = os.getenv("BACKOFFICE_USERNAME", "admin")
+BACKOFFICE_PASSWORD = os.getenv("BACKOFFICE_PASSWORD", "")
 TRAINING_STATUS_PATH = os.path.join(APP_BASE_DIR, "training_status.json")
 SAM2_PACKAGE_ROOT = os.getenv(
     "SAM2_PACKAGE_ROOT",
@@ -594,6 +603,34 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+
+def require_backoffice_login() -> None:
+    if not BACKOFFICE_PASSWORD:
+        return
+    if st.session_state.get("backoffice_authenticated"):
+        with st.sidebar:
+            st.caption(f"Connecté : {BACKOFFICE_USERNAME}")
+            if st.button("Se déconnecter"):
+                st.session_state.pop("backoffice_authenticated", None)
+                st.rerun()
+        return
+
+    st.title("Car Damage Detection - Backoffice")
+    st.caption("Accès réservé aux personnes autorisées.")
+    with st.form("backoffice_login"):
+        username = st.text_input("Utilisateur", value=BACKOFFICE_USERNAME)
+        password = st.text_input("Mot de passe", type="password")
+        submitted = st.form_submit_button("Se connecter", type="primary")
+    if submitted:
+        if username == BACKOFFICE_USERNAME and password == BACKOFFICE_PASSWORD:
+            st.session_state["backoffice_authenticated"] = True
+            st.rerun()
+        st.error("Identifiants invalides.")
+    st.stop()
+
+
+require_backoffice_login()
 
 # Monkey-patch image_to_url for streamlit-drawable-canvas compatibility in modern Streamlit versions
 try:
