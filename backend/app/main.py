@@ -13,6 +13,7 @@ from backend.app.routes import (
     rag_routes,
     upload_routes,
 )
+from backend.app.security import ApiKeyAuthMiddleware
 from backend.app.services.correction_service import CorrectionService
 from backend.app.services.export_yolo_service import ExportYoloService
 from backend.app.services.frame_selection_service import FrameSelectionService
@@ -43,9 +44,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://127.0.0.1:8501", "http://localhost:8501"],
+        allow_origins=list(settings.cors_origins),
         allow_methods=["*"], allow_headers=["*"],
     )
+    app.add_middleware(ApiKeyAuthMiddleware, api_key=settings.api_key)
     app.state.settings = settings
     app.state.database = database
     app.state.video_service = VideoService(database, settings)
@@ -83,6 +85,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "llm_provider": app.state.llm_service.provider,
             "sam2_enabled": settings.sam2_enabled,
             "sam2_provider": app.state.sam2_service.provider,
+            "auth_enabled": bool(settings.api_key),
+            "app_env": settings.app_env,
             "classes": list(CANONICAL_CLASSES),
         }
 

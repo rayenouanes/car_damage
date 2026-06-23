@@ -21,6 +21,7 @@ python -m pip install -r requirements.txt
 python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 python -m streamlit run frontend/streamlit_app.py
 python -m unittest discover -s tests -p "test_*.py" -v
+docker compose -f docker-compose.aws.yml up -d --build
 ```
 
 ## Conventions
@@ -40,6 +41,8 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - Un export segmentation ne contient que des images dont toutes les detections ont ete revues.
 - Les elements d'un meme `source_group` ne traversent jamais les splits.
 - Ne pas versionner poids, uploads, frames, bases SQLite ou exports.
+- Pour un deploiement partage, proteger le backend avec `AL_API_KEY` et le backoffice avec `BACKOFFICE_PASSWORD`.
+- Les poids de production sont fournis hors Git, typiquement via S3 et `scripts/download_models.py`.
 
 ## Definition of done
 

@@ -109,6 +109,46 @@ Le raccourci suivant lance les deux processus:
 ./start_active_learning_mvp.ps1
 ```
 
+## Securite backoffice et API
+
+En local, l'application reste ouverte si aucune variable de securite n'est definie.
+Pour un deploiement partage, definir:
+
+```powershell
+$env:AL_API_KEY = "une_cle_longue"
+$env:BACKOFFICE_USERNAME = "admin"
+$env:BACKOFFICE_PASSWORD = "un_mot_de_passe_long"
+```
+
+Le backend exige alors l'en-tete `X-API-Key` sur les routes privees. `/health`
+reste public pour les checks de supervision. Le frontend Streamlit envoie
+automatiquement `AL_API_KEY` au backend et affiche une page de connexion si
+`BACKOFFICE_PASSWORD` est configure.
+
+## Deploiement AWS
+
+Le repo contient les fichiers de base pour AWS:
+
+```text
+.env.example
+Dockerfile
+docker-compose.aws.yml
+deploy_aws.md
+scripts/download_models.py
+```
+
+Les modeles ne sont pas versionnes dans Git. Le conteneur peut les telecharger
+depuis S3 au demarrage via `YOLO_MODEL_S3_URI` et `SAM2_CHECKPOINT_S3_URI`.
+
+Commande de lancement sur EC2:
+
+```bash
+cp .env.example .env
+docker compose -f docker-compose.aws.yml up -d --build
+```
+
+Voir `deploy_aws.md` pour les etapes EC2, S3, IAM, securite reseau et sauvegardes.
+
 ## Upload et inference
 
 1. Ouvrir `Upload video/images`.

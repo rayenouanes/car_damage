@@ -9,8 +9,18 @@ import requests
 import streamlit as st
 from PIL import Image, ImageDraw
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
 
 API_DEFAULT = os.getenv("AL_API_URL", "http://127.0.0.1:8000").rstrip("/")
+API_KEY = os.getenv("AL_API_KEY", "")
+BACKOFFICE_USERNAME = os.getenv("BACKOFFICE_USERNAME", "admin")
+BACKOFFICE_PASSWORD = os.getenv("BACKOFFICE_PASSWORD", "")
 CLASSES = ["rayure", "bosse", "impact", "defaut_peinture"]
 CLASS_LABELS = {
     "rayure": "Rayure",
@@ -37,6 +47,34 @@ PAGES = [
 
 
 st.set_page_config(page_title="Active Learning Carrosserie", layout="wide")
+
+
+def require_backoffice_login() -> None:
+    if not BACKOFFICE_PASSWORD:
+        return
+    if st.session_state.get("backoffice_authenticated"):
+        with st.sidebar:
+            st.caption(f"Connecte: {BACKOFFICE_USERNAME}")
+            if st.button("Se deconnecter"):
+                st.session_state.pop("backoffice_authenticated", None)
+                st.rerun()
+        return
+
+    st.title("Backoffice Car Damage Detection")
+    st.caption("Acces reserve aux personnes autorisees.")
+    with st.form("backoffice_login"):
+        username = st.text_input("Utilisateur", value=BACKOFFICE_USERNAME)
+        password = st.text_input("Mot de passe", type="password")
+        submitted = st.form_submit_button("Se connecter", type="primary")
+    if submitted:
+        if username == BACKOFFICE_USERNAME and password == BACKOFFICE_PASSWORD:
+            st.session_state["backoffice_authenticated"] = True
+            st.rerun()
+        st.error("Identifiants invalides.")
+    st.stop()
+
+
+require_backoffice_login()
 st.title("Plateforme Active Learning - Defauts automobiles")
 st.caption(
     "Production: YOLO seul. Training: keyframes + SAM2 + VLM + RAG + LLM. "
@@ -49,7 +87,12 @@ page = st.sidebar.radio("Navigation", PAGES)
 
 def api(method: str, path: str, **kwargs):
     try:
-        response = requests.request(method, f"{api_url}{path}", timeout=300, **kwargs)
+        headers = dict(kwargs.pop("headers", {}) or {})
+        if API_KEY:
+            headers["X-API-Key"] = API_KEY
+        response = requests.request(
+            method, f"{api_url}{path}", timeout=300, headers=headers, **kwargs
+        )
         if not response.ok:
             try:
                 detail = response.json().get("detail", response.text)

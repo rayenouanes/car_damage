@@ -1,0 +1,47 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: >
+      sh -c "python scripts/download_models.py &&
+             python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000"
+    volumes:
+      - app_data:/app/backend/app/data
+      - model_cache:/app/models
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  backoffice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      AL_API_URL: http://api:8000
+    command: >
+      sh -c "python -m streamlit run frontend/streamlit_app.py
+             --server.address=0.0.0.0
+             --server.port=8501
+             --server.headless=true
+             --browser.gatherUsageStats=false"
+    depends_on:
+      - api
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
+
+volumes:
+  app_data:
+  model_cache:

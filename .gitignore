@@ -5,6 +5,10 @@ active_learning_data/
 .venv-gpu/
 venv/
 env/
+.env
+.env.local
+.env.production
+!.env.example
 
 # Poids et artefacts ML lourds
 *.pt
