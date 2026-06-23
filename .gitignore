@@ -1,0 +1,67 @@
+active_learning_data/
+
+# Environnements locaux
+.venv/
+.venv-gpu/
+venv/
+env/
+
+# Poids et artefacts ML lourds
+*.pt
+*.pth
+*.onnx
+*.engine
+*.weights
+*.ckpt
+runs/
+models_history/
+evaluation_runs/
+
+# Datasets, annotations et exports locaux
+Data7.off/
+dataset_annote/
+dataset_final_harmonise/
+brain_training_dataset/
+annotations_sessions/
+backups_original_annotations/
+b2bak_*/
+b2cur_*/
+
+# Bases, caches et logs runtime
+*.db
+*.sqlite
+*.sqlite3
+*.log
+*.tmp
+results_*.csv
+*_remap_report*.json
+training_status.json
+training_status.json.tmp
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# Secrets Streamlit locaux
+.streamlit/credentials.toml
+
+backend/app/data/**
+!backend/app/data/uploads/
+!backend/app/data/uploads/.gitkeep
+!backend/app/data/frames/
+!backend/app/data/frames/.gitkeep
+!backend/app/data/keyframes/
+!backend/app/data/keyframes/.gitkeep
+!backend/app/data/crops/
+!backend/app/data/crops/.gitkeep
+!backend/app/data/masks/
+!backend/app/data/masks/.gitkeep
+!backend/app/data/predictions/
+!backend/app/data/predictions/.gitkeep
+!backend/app/data/exports/
+!backend/app/data/exports/.gitkeep
+!backend/app/data/rag/
+!backend/app/data/rag/.gitkeep
+!backend/app/data/error_bank/
+!backend/app/data/error_bank/.gitkeep
+!backend/app/data/training_runs/
+!backend/app/data/training_runs/.gitkeep
