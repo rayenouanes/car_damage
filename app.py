@@ -40,12 +40,12 @@ FINAL_DATASET_CLASSES = {
 }
 FINAL_DATASET_NAME_TO_ID = {name: cid for cid, name in FINAL_DATASET_CLASSES.items()}
 FINAL_DATASET_COLORS = {
-    0: '#63D0A8',
+    0: '#FFFFFF',
     1: '#F97066',
-    2: '#5B9CF6',
-    3: '#FBBF24',
+    2: '#FFFFFF',
+    3: '#FFFFFF',
     4: '#C084FC',
-    5: '#FB923C',
+    5: '#FFFFFF',
 }
 
 APP_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -333,6 +333,18 @@ def find_nonstandard_class_ids(boxes: list) -> list:
         if cls_id not in FINAL_DATASET_CLASSES:
             invalid_ids.add(cls_id)
     return sorted(invalid_ids)
+
+
+def order_annotation_class_ids(class_ids: list[int]) -> list[int]:
+    priority_names = ("dent", "scratch")
+    priority_ids = [
+        FINAL_DATASET_NAME_TO_ID[name]
+        for name in priority_names
+        if name in FINAL_DATASET_NAME_TO_ID
+    ]
+    ordered = [cid for cid in priority_ids if cid in class_ids]
+    ordered.extend(cid for cid in class_ids if cid not in ordered)
+    return ordered
 
 
 def canvas_rect_to_image_box(rect: dict, scale_factor: float, image_w: int, image_h: int):
@@ -710,11 +722,30 @@ st.markdown("""
     div[data-testid="stWidgetLabel"] label,
     div[data-testid="stWidgetLabel"] p,
     div[data-baseweb="select"] *,
+    div[data-baseweb="popover"] *,
+    div[role="listbox"] *,
+    div[role="option"] *,
+    ul[role="listbox"] *,
     div[data-testid="stFileUploader"] *,
     div[data-testid="stRadio"] label,
     div[data-testid="stRadio"] p,
     div[data-testid="stSlider"] label,
-    div[data-testid="stNumberInput"] label {
+    div[data-testid="stNumberInput"] label,
+    input,
+    textarea {
+        color: #FFFFFF !important;
+    }
+
+    div[data-baseweb="popover"],
+    div[role="listbox"],
+    ul[role="listbox"],
+    div[data-baseweb="menu"] {
+        background-color: #0B0E17 !important;
+    }
+
+    div[role="option"]:hover,
+    ul[role="listbox"] li:hover {
+        background-color: #1E293B !important;
         color: #FFFFFF !important;
     }
     
@@ -1546,7 +1577,7 @@ if st.session_state.get("pending_model_reload"):
 st.sidebar.markdown("---")
 st.sidebar.subheader("🎨 Classe à dessiner")
 
-available_class_ids = sorted(FINAL_DATASET_CLASSES.keys())
+available_class_ids = order_annotation_class_ids(sorted(FINAL_DATASET_CLASSES.keys()))
 if "active_brush_class" not in st.session_state or st.session_state.active_brush_class not in available_class_ids:
     st.session_state.active_brush_class = available_class_ids[0]
 
@@ -1979,6 +2010,24 @@ if selected_section == NAV_SECTIONS[0]:
             accept_multiple_files=True,
             key="uploader_batch"
         )
+        batch_sam2_col, batch_sam2_limit_col = st.columns(2)
+        with batch_sam2_col:
+            image_enable_sam2 = st.checkbox(
+                "Activer SAM2 sur le lot",
+                value=True,
+                key="batch_enable_sam2",
+                help="Chaque image du lot garde YOLO pour les boîtes, puis SAM2 ajoute les masques.",
+            )
+        with batch_sam2_limit_col:
+            image_max_sam2_boxes = st.number_input(
+                "Boîtes maximum à segmenter par image",
+                1,
+                50,
+                20,
+                1,
+                disabled=not image_enable_sam2,
+                key="batch_max_sam2_boxes",
+            )
         if uploaded_batch:
             is_zip = len(uploaded_batch) == 1 and uploaded_batch[0].name.endswith('.zip')
             new_batch_files = []
@@ -2168,7 +2217,7 @@ if selected_section == NAV_SECTIONS[0]:
                     f"et n'ont pas été ajoutées : {ignored_text}."
                 )
             if (
-                work_mode == "📷 Une image"
+                work_mode in {"📷 Une image", "📁 Plusieurs images ou ZIP"}
                 and image_enable_sam2
                 and st.session_state.tab1_boxes
             ):
@@ -2385,7 +2434,7 @@ if selected_section == NAV_SECTIONS[0]:
                             st.session_state.tab1_boxes.pop(idx)
                             st.warning(f"BBox #{idx+1} supprimée !")
 
-            if work_mode == "📷 Une image":
+            if work_mode in {"📷 Une image", "📁 Plusieurs images ou ZIP"}:
                 st.markdown("---")
                 st.markdown("### 🧩 Segmentation SAM2")
                 sam2_flash = st.session_state.pop("image_sam2_flash", None)
