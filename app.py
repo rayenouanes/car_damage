@@ -711,8 +711,11 @@ st.markdown("""
     div[data-testid="stWidgetLabel"] p,
     div[data-baseweb="select"] *,
     div[data-baseweb="popover"] *,
+    div[data-baseweb="menu"] *,
     div[role="listbox"] *,
     div[role="option"] *,
+    li[role="option"],
+    li[role="option"] *,
     ul[role="listbox"] *,
     div[data-testid="stFileUploader"] *,
     div[data-testid="stRadio"] label,
@@ -722,19 +725,41 @@ st.markdown("""
     input,
     textarea {
         color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }
+
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="select"] input {
+        background-color: #0B0E17 !important;
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        border-color: #64748B !important;
+    }
+
+    div[data-baseweb="select"] svg {
+        color: #FFFFFF !important;
+        fill: #FFFFFF !important;
     }
 
     div[data-baseweb="popover"],
     div[role="listbox"],
     ul[role="listbox"],
-    div[data-baseweb="menu"] {
+    div[data-baseweb="menu"],
+    li[role="option"],
+    div[role="option"] {
         background-color: #0B0E17 !important;
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
     }
 
     div[role="option"]:hover,
+    li[role="option"]:hover,
+    li[role="option"][aria-selected="true"],
+    div[role="option"][aria-selected="true"],
     ul[role="listbox"] li:hover {
         background-color: #1E293B !important;
         color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
     }
     
     /* Headers styling */
