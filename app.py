@@ -721,19 +721,27 @@ st.markdown("""
     div[data-testid="stRadio"] label,
     div[data-testid="stRadio"] p,
     div[data-testid="stSlider"] label,
-    div[data-testid="stNumberInput"] label,
-    input,
-    textarea {
+    div[data-testid="stNumberInput"] label {
         color: #FFFFFF !important;
         -webkit-text-fill-color: #FFFFFF !important;
     }
 
-    div[data-baseweb="select"] > div,
-    div[data-baseweb="select"] input {
+    div[data-baseweb="select"] > div {
         background-color: #0B0E17 !important;
+        border-color: #64748B !important;
+    }
+
+    div[data-baseweb="select"] input,
+    div[data-baseweb="select"] span {
         color: #FFFFFF !important;
         -webkit-text-fill-color: #FFFFFF !important;
-        border-color: #64748B !important;
+    }
+
+    div[data-testid="stTextInput"] input,
+    div[data-testid="stNumberInput"] input,
+    textarea {
+        color: #0F172A !important;
+        -webkit-text-fill-color: #0F172A !important;
     }
 
     div[data-baseweb="select"] svg {
