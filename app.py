@@ -40,12 +40,12 @@ FINAL_DATASET_CLASSES = {
 }
 FINAL_DATASET_NAME_TO_ID = {name: cid for cid, name in FINAL_DATASET_CLASSES.items()}
 FINAL_DATASET_COLORS = {
-    0: '#FFFFFF',
+    0: '#63D0A8',
     1: '#F97066',
-    2: '#FFFFFF',
-    3: '#FFFFFF',
+    2: '#5B9CF6',
+    3: '#FBBF24',
     4: '#C084FC',
-    5: '#FFFFFF',
+    5: '#FB923C',
 }
 
 APP_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -333,18 +333,6 @@ def find_nonstandard_class_ids(boxes: list) -> list:
         if cls_id not in FINAL_DATASET_CLASSES:
             invalid_ids.add(cls_id)
     return sorted(invalid_ids)
-
-
-def order_annotation_class_ids(class_ids: list[int]) -> list[int]:
-    priority_names = ("dent", "scratch")
-    priority_ids = [
-        FINAL_DATASET_NAME_TO_ID[name]
-        for name in priority_names
-        if name in FINAL_DATASET_NAME_TO_ID
-    ]
-    ordered = [cid for cid in priority_ids if cid in class_ids]
-    ordered.extend(cid for cid in class_ids if cid not in ordered)
-    return ordered
 
 
 def canvas_rect_to_image_box(rect: dict, scale_factor: float, image_w: int, image_h: int):
@@ -1577,7 +1565,7 @@ if st.session_state.get("pending_model_reload"):
 st.sidebar.markdown("---")
 st.sidebar.subheader("🎨 Classe à dessiner")
 
-available_class_ids = order_annotation_class_ids(sorted(FINAL_DATASET_CLASSES.keys()))
+available_class_ids = sorted(FINAL_DATASET_CLASSES.keys())
 if "active_brush_class" not in st.session_state or st.session_state.active_brush_class not in available_class_ids:
     st.session_state.active_brush_class = available_class_ids[0]
 
