@@ -3020,7 +3020,7 @@ if selected_section == NAV_SECTIONS[2]:
     st.markdown("<div class='premium-card'>", unsafe_allow_html=True)
     st.subheader("⚙️ Paramètres d'entraînement")
     
-    col_c1, col_c2, col_c3 = st.columns(3)
+    col_c1, col_c2, col_c3, col_c4 = st.columns([1.3, 0.8, 0.8, 1.0])
     with col_c1:
         retrain_target = st.selectbox(
             "Modèle de départ :",
@@ -3030,12 +3030,29 @@ if selected_section == NAV_SECTIONS[2]:
     with col_c2:
         epochs_input = st.number_input("Nombre d'époques (itérations)", min_value=1, max_value=300, value=20, step=5, help="Plus d'époques améliorent la précision mais prennent plus de temps.")
     with col_c3:
+        batch_default = 1 if cuda_is_available() else 2
+        batch_input = st.number_input(
+            "Batch",
+            min_value=1,
+            max_value=16,
+            value=batch_default,
+            step=1,
+            key="training_batch_input",
+            help="Sur une carte 4 Go, gardez 1 ou 2. Plus le batch est haut, plus la VRAM se remplit."
+        )
+    with col_c4:
         cuda_available = cuda_is_available()
-        device_options = ["CPU"]
+        device_options = ["GPU (CUDA)", "CPU"] if cuda_available else ["CPU"]
+        device_input = st.selectbox(
+            "Processeur d'entraînement",
+            device_options,
+            index=0,
+            key="training_device_input",
+            help="Quand CUDA est disponible, le GPU est choisi par défaut."
+        )
         if cuda_available:
-            device_options.append("GPU (CUDA)")
-        device_input = st.selectbox("Processeur d'entraînement", device_options, help="Le GPU est proposé seulement si PyTorch détecte une carte Nvidia CUDA compatible.")
-        if not cuda_available:
+            st.caption("GPU choisi par défaut. Si la VRAM est pleine, mettez Batch = 1.")
+        else:
             st.caption("GPU CUDA non détecté : le réentraînement se lancera sur CPU.")
         st.checkbox("Utiliser best_2.pt comme base", value=True, disabled=True, help="Verrouillé pour garder le même ordre de classes partout.")
 
@@ -3111,6 +3128,8 @@ if selected_section == NAV_SECTIONS[2]:
                     "metrics": {},
                     "losses": {},
                     "gpu": get_gpu_environment_info(),
+                    "device": device_input,
+                    "batch": int(batch_input),
                 })
                 
                 with st.status("🛠️ Lancement du pipeline d'Active Learning MLOps...", expanded=True) as status:
@@ -3143,10 +3162,18 @@ if selected_section == NAV_SECTIONS[2]:
                     # Determine training device
                     if device_input == "GPU (CUDA)" and cuda_is_available():
                         device_arg = 0
-                        status.write("⚡ Entraînement sur GPU CUDA.")
+                        training_device_label = "GPU CUDA"
+                        status.write(f"⚡ Entraînement sur GPU CUDA avec batch `{int(batch_input)}`.")
+                        try:
+                            import torch
+
+                            torch.cuda.empty_cache()
+                        except Exception:
+                            pass
                     else:
                         device_arg = "cpu"
-                        status.write("🧠 Entraînement sur CPU.")
+                        training_device_label = "CPU"
+                        status.write(f"🧠 Entraînement sur CPU avec batch `{int(batch_input)}`.")
                     
                     import shutil
                     import time
@@ -3174,11 +3201,11 @@ if selected_section == NAV_SECTIONS[2]:
                             total = payload["total_epochs"] or int(epochs_input)
                             live_progress.progress(
                                 min(1.0, payload["progress"]),
-                                text=f"Entrainement GPU : epoch {epoch} / {total}",
+                                text=f"Entrainement {training_device_label} : epoch {epoch} / {total}",
                             )
                             live_epoch_text.markdown(
                                 f"**Epoch en cours : `{epoch} / {total}`**  "
-                                f"| GPU : `{payload['gpu'].get('device_name') or device_arg}`"
+                                f"| Mode : `{training_device_label}`"
                             )
                             live_metrics.json(
                                 {
@@ -3196,9 +3223,10 @@ if selected_section == NAV_SECTIONS[2]:
                             data=yaml_path,
                             epochs=epochs_input,
                             imgsz=640,
-                            batch=2,
+                            batch=int(batch_input),
                             device=device_arg,
                             workers=0,
+                            amp=(device_arg == 0),
                             verbose=True,
                             project=train_project_dir,
                             name=train_run_name,
@@ -3286,6 +3314,11 @@ if selected_section == NAV_SECTIONS[2]:
                     ferr.write(traceback.format_exc())
                 st.error(f"❌ Une erreur est survenue pendant le réentraînement : {ex}")
                 st.caption(f"Détail technique enregistré dans `{os.path.basename(error_trace_path)}`.")
+                if is_cuda_runtime_error(ex):
+                    st.warning(
+                        "CUDA a bien été appelé, mais la carte GPU a probablement manqué de mémoire. "
+                        "Fermez les applications qui utilisent le GPU puis relancez avec Batch = 1."
+                    )
                 st.info("Astuce : Si vous avez choisi GPU (CUDA) mais qu'il y a une erreur, assurez-vous d'avoir installé les pilotes NVIDIA CUDA et PyTorch avec support CUDA, sinon réessayez en choisissant 'CPU'.")
                 
     st.markdown("</div>", unsafe_allow_html=True)
