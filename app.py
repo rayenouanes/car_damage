@@ -3474,16 +3474,13 @@ if selected_section == NAV_SECTIONS[3]:
                 if filename.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
             ])
         
-        # Instantiate model
-        patch_ultralytics_cache_pool_for_windows()
-        temp_model = YOLO(model_file_path)
-
         eval_progress = st.progress(
             0.0,
             text=f"Evaluation : 0% - 0 / {total_eval_images or '?'} images",
         )
         eval_timing = st.empty()
-        eval_device = "GPU CUDA" if cuda_is_available() else "CPU"
+        requested_eval_device = 0 if cuda_is_available() else "cpu"
+        eval_device = "GPU CUDA" if requested_eval_device == 0 else "CPU"
         eval_start_time = time.time()
 
         def format_eval_duration(seconds):
@@ -3522,17 +3519,19 @@ if selected_section == NAV_SECTIONS[3]:
             except Exception:
                 pass
 
-        temp_model.add_callback("on_val_batch_end", update_evaluation_progress)
-        
-        project_dir = os.path.join(base_dir, "temp_eval_runs")
-        run_name = "eval"
-        
-        with st.spinner(f"⚡ Évaluation scientifique du modèle `{os.path.basename(model_file_path)}` sur le jeu `{split}`..."):
-            metrics = temp_model.val(
+        def build_eval_model():
+            patch_ultralytics_cache_pool_for_windows()
+            model = YOLO(model_file_path)
+            model.add_callback("on_val_batch_end", update_evaluation_progress)
+            return model
+
+        def run_val_on_device(device_arg):
+            temp_model = build_eval_model()
+            return temp_model.val(
                 data=yaml_path,
                 split=split,
                 imgsz=640,
-                device=0 if cuda_is_available() else "cpu",
+                device=device_arg,
                 workers=0,
                 plots=True,
                 save_json=True,
@@ -3540,6 +3539,33 @@ if selected_section == NAV_SECTIONS[3]:
                 name=run_name,
                 exist_ok=True
             )
+
+        project_dir = os.path.join(base_dir, "temp_eval_runs")
+        run_name = "eval"
+
+        with st.spinner(f"⚡ Évaluation scientifique du modèle `{os.path.basename(model_file_path)}` sur le jeu `{split}`..."):
+            try:
+                metrics = run_val_on_device(requested_eval_device)
+            except Exception as gpu_error:
+                if requested_eval_device != 0 or not is_cuda_runtime_error(gpu_error):
+                    raise
+                st.warning(
+                    "CUDA a planté pendant l'évaluation. L'application relance la validation sur CPU "
+                    "pour éviter de perdre l'analyse."
+                )
+                try:
+                    import torch
+
+                    torch.cuda.empty_cache()
+                except Exception:
+                    pass
+                eval_device = "CPU (secours après erreur CUDA)"
+                eval_start_time = time.time()
+                eval_progress.progress(
+                    0.0,
+                    text=f"Evaluation CPU : 0% - 0 / {total_eval_images or '?'} images",
+                )
+                metrics = run_val_on_device("cpu")
         eval_elapsed = time.time() - eval_start_time
         eval_progress.progress(
             1.0,
