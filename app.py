@@ -52,13 +52,16 @@ APP_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 try:
     from dotenv import load_dotenv
 
-    load_dotenv(os.path.join(APP_BASE_DIR, ".env"))
+    load_dotenv(os.path.join(APP_BASE_DIR, ".env"), override=True)
 except ImportError:
     pass
 
 BACKOFFICE_USERNAME = os.getenv("BACKOFFICE_USERNAME", "admin")
 BACKOFFICE_PASSWORD = os.getenv("BACKOFFICE_PASSWORD", "")
 TRAINING_STATUS_PATH = os.path.join(APP_BASE_DIR, "training_status.json")
+HF_MODEL_REPO = os.getenv("HF_MODEL_REPO", "rayeneouanes/car-damage-models")
+HF_MODEL_FILENAME = os.getenv("HF_MODEL_FILENAME", "best_2.pt")
+HF_TOKEN = os.getenv("HF_TOKEN", "")
 SAM2_PACKAGE_ROOT = os.getenv(
     "SAM2_PACKAGE_ROOT",
     r"C:\Users\p134929\Downloads\les modèles (Filip)\model (2)",
@@ -70,6 +73,30 @@ SAM2_CHECKPOINT_PATH = os.getenv(
 SAM2_CONFIG_NAME = os.getenv(
     "SAM2_MODEL_CONFIG", "configs/sam2.1/sam2.1_hiera_t.yaml"
 )
+
+
+def ensure_private_hf_model(filename: str = "best_2.pt") -> None:
+    destination = os.path.join(APP_BASE_DIR, filename)
+    if os.path.exists(destination):
+        return
+    if not HF_MODEL_REPO or not HF_TOKEN:
+        return
+
+    import requests
+
+    url = f"https://huggingface.co/{HF_MODEL_REPO}/resolve/main/{HF_MODEL_FILENAME}"
+    tmp_path = destination + ".tmp"
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    with requests.get(url, headers=headers, stream=True, timeout=60) as response:
+        response.raise_for_status()
+        with open(tmp_path, "wb") as fout:
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    fout.write(chunk)
+    os.replace(tmp_path, destination)
+
+
+ensure_private_hf_model("best_2.pt")
 
 
 def cuda_is_available() -> bool:
