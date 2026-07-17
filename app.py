@@ -754,14 +754,14 @@ st.markdown("""
     }
 
     div[data-baseweb="select"] > div {
-        background-color: #0B0E17 !important;
+        background-color: #FFFFFF !important;
         border-color: #64748B !important;
     }
 
     div[data-baseweb="select"] input,
     div[data-baseweb="select"] span {
-        color: #FFFFFF !important;
-        -webkit-text-fill-color: #FFFFFF !important;
+        color: #0F172A !important;
+        -webkit-text-fill-color: #0F172A !important;
     }
 
     div[data-testid="stTextInput"] input,
@@ -771,9 +771,15 @@ st.markdown("""
         -webkit-text-fill-color: #0F172A !important;
     }
 
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="select"] > div * {
+        color: #0F172A !important;
+        -webkit-text-fill-color: #0F172A !important;
+    }
+
     div[data-baseweb="select"] svg {
-        color: #FFFFFF !important;
-        fill: #FFFFFF !important;
+        color: #0F172A !important;
+        fill: #0F172A !important;
     }
 
     div[data-baseweb="popover"],
@@ -783,6 +789,16 @@ st.markdown("""
     li[role="option"],
     div[role="option"] {
         background-color: #0B0E17 !important;
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }
+
+    div[data-baseweb="popover"] *,
+    div[role="listbox"] *,
+    ul[role="listbox"] *,
+    div[data-baseweb="menu"] *,
+    li[role="option"] *,
+    div[role="option"] * {
         color: #FFFFFF !important;
         -webkit-text-fill-color: #FFFFFF !important;
     }
@@ -1394,9 +1410,17 @@ def analyze_video_with_bytetrack(
                                 "model_class_name": model_class_name,
                                 "frames_seen": 0,
                                 "best_score": -1.0,
+                                "observations": [],
                             },
                         )
                         track["frames_seen"] += 1
+                        track["observations"].append(
+                            {
+                                "frame_index": int(frame_index),
+                                "bbox": [float(value) for value in bbox],
+                                "confidence": float(confidence_value),
+                            }
+                        )
                         quality_score = video_frame_quality_score(
                             frame_bgr, confidence_value, bbox
                         )
@@ -1521,6 +1545,170 @@ def render_video_track_preview(frame_bgr: np.ndarray, track: dict) -> np.ndarray
         0.65, bgr_color, 2, cv2.LINE_AA,
     )
     return cv2.cvtColor(preview, cv2.COLOR_BGR2RGB)
+
+
+def extract_video_frame(video_bytes: bytes, frame_index: int, original_name: str = "video.mp4"):
+    suffix = os.path.splitext(original_name)[1].lower()
+    if suffix not in {".mp4", ".mov", ".avi", ".mkv", ".webm"}:
+        suffix = ".mp4"
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_video:
+            temp_video.write(video_bytes)
+            temp_path = temp_video.name
+        capture = cv2.VideoCapture(temp_path)
+        total_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+        fps = float(capture.get(cv2.CAP_PROP_FPS) or 25.0)
+        safe_index = max(0, min(int(frame_index), max(0, total_frames - 1)))
+        capture.set(cv2.CAP_PROP_POS_FRAMES, safe_index)
+        ok, frame_bgr = capture.read()
+        capture.release()
+        if not ok or frame_bgr is None:
+            return None, {"frame_index": safe_index, "total_frames": total_frames, "fps": fps}
+        ok, encoded = cv2.imencode(".jpg", frame_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 94])
+        return frame_bgr, {
+            "frame_index": safe_index,
+            "total_frames": total_frames,
+            "fps": fps,
+            "timestamp_seconds": safe_index / fps if fps else 0.0,
+            "frame_jpeg": encoded.tobytes() if ok else None,
+        }
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+
+
+def render_corrected_video(
+    video_bytes: bytes,
+    video_name: str,
+    tracks: list[dict],
+    output_dir: str,
+    frame_radius: int = 25,
+) -> str:
+    def track_box_for_frame(track: dict, frame_idx: int):
+        observations = sorted(
+            track.get("observations", []),
+            key=lambda item: int(item.get("frame_index", 0)),
+        )
+        if not observations:
+            anchor = int(track.get("frame_index", 0) or 0)
+            radius = int(track.get("frame_radius", frame_radius) or frame_radius)
+            if abs(frame_idx - anchor) > radius:
+                return None
+            return track.get("bbox", track.get("box", [0, 0, 0, 0]))
+
+        first_frame = int(observations[0].get("frame_index", 0))
+        last_frame = int(observations[-1].get("frame_index", first_frame))
+        max_gap = int(track.get("frame_radius", frame_radius) or frame_radius)
+        if frame_idx < first_frame - max_gap or frame_idx > last_frame + max_gap:
+            return None
+
+        previous_obs = None
+        next_obs = None
+        for obs in observations:
+            obs_frame = int(obs.get("frame_index", 0))
+            if obs_frame <= frame_idx:
+                previous_obs = obs
+            if obs_frame >= frame_idx:
+                next_obs = obs
+                break
+
+        if previous_obs is None:
+            previous_obs = observations[0]
+        if next_obs is None:
+            next_obs = observations[-1]
+
+        previous_frame = int(previous_obs.get("frame_index", 0))
+        next_frame = int(next_obs.get("frame_index", previous_frame))
+        if abs(frame_idx - previous_frame) > max_gap and abs(frame_idx - next_frame) > max_gap:
+            return None
+
+        previous_box = [float(value) for value in previous_obs.get("bbox", [0, 0, 0, 0])]
+        next_box = [float(value) for value in next_obs.get("bbox", previous_box)]
+        if next_frame == previous_frame:
+            return previous_box
+
+        ratio = (frame_idx - previous_frame) / max(1, next_frame - previous_frame)
+        ratio = max(0.0, min(1.0, float(ratio)))
+        return [
+            previous_box[index] + (next_box[index] - previous_box[index]) * ratio
+            for index in range(4)
+        ]
+
+    suffix = os.path.splitext(video_name)[1].lower()
+    if suffix not in {".mp4", ".mov", ".avi", ".mkv", ".webm"}:
+        suffix = ".mp4"
+    os.makedirs(output_dir, exist_ok=True)
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_video:
+            temp_video.write(video_bytes)
+            temp_path = temp_video.name
+
+        capture = cv2.VideoCapture(temp_path)
+        fps = float(capture.get(cv2.CAP_PROP_FPS) or 25.0)
+        width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
+        height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
+        safe_stem = "".join(
+            char if char.isalnum() else "_" for char in os.path.splitext(os.path.basename(video_name))[0]
+        ).strip("_") or "video"
+        output_path = os.path.join(
+            output_dir,
+            f"{safe_stem}_corrigee_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4",
+        )
+        writer = cv2.VideoWriter(
+            output_path,
+            cv2.VideoWriter_fourcc(*"mp4v"),
+            fps,
+            (width, height),
+        )
+        if not writer.isOpened():
+            raise RuntimeError("Impossible de créer la vidéo de sortie.")
+
+        frame_idx = 0
+        while True:
+            ok, frame_bgr = capture.read()
+            if not ok or frame_bgr is None:
+                break
+            for track in tracks:
+                active_box = track_box_for_frame(track, frame_idx)
+                if active_box is None:
+                    continue
+                class_id = int(track.get("class_id", 0))
+                color_hex = get_dataset_class_color(class_id).lstrip("#")
+                rgb_color = tuple(int(color_hex[index:index + 2], 16) for index in (0, 2, 4))
+                bgr_color = (rgb_color[2], rgb_color[1], rgb_color[0])
+                x1, y1, x2, y2 = [int(value) for value in active_box]
+                x1, y1 = max(0, x1), max(0, y1)
+                x2, y2 = min(width - 1, x2), min(height - 1, y2)
+                if x2 <= x1 or y2 <= y1:
+                    continue
+                cv2.rectangle(frame_bgr, (x1, y1), (x2, y2), bgr_color, 3)
+                label = f"{track.get('track_id', 'correction')} | {get_dataset_class_display(class_id)}"
+                cv2.putText(
+                    frame_bgr,
+                    label,
+                    (x1, max(24, y1 - 8)),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    bgr_color,
+                    2,
+                    cv2.LINE_AA,
+                )
+            writer.write(frame_bgr)
+            frame_idx += 1
+        capture.release()
+        writer.release()
+        return output_path
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
 
 # Sidebar Design
 st.sidebar.markdown("<h2 style='text-align: center; color: #FFF; margin-bottom: 10px;'>🧠 Contrôles IA</h2>", unsafe_allow_html=True)
@@ -1705,6 +1893,14 @@ if "video_upload_hash" not in st.session_state:
     st.session_state.video_upload_hash = None
 if "video_editor_boxes" not in st.session_state:
     st.session_state.video_editor_boxes = []
+if "video_manual_tracks" not in st.session_state:
+    st.session_state.video_manual_tracks = []
+if "video_manual_frame_info" not in st.session_state:
+    st.session_state.video_manual_frame_info = None
+if "video_manual_mode_active" not in st.session_state:
+    st.session_state.video_manual_mode_active = False
+if "video_render_path" not in st.session_state:
+    st.session_state.video_render_path = None
 
 if "tab2_boxes" not in st.session_state:
     st.session_state.tab2_boxes = []
@@ -1886,6 +2082,10 @@ if selected_section == NAV_SECTIONS[0]:
                 st.session_state.video_upload_hash = current_video_hash
                 st.session_state.video_analysis = None
                 st.session_state.video_editor_boxes = []
+                st.session_state.video_manual_tracks = []
+                st.session_state.video_manual_frame_info = None
+                st.session_state.video_manual_mode_active = False
+                st.session_state.video_render_path = None
                 st.session_state.video_editor_key = None
             st.video(video_bytes)
 
@@ -2016,6 +2216,13 @@ if selected_section == NAV_SECTIONS[0]:
                         use_container_width=True,
                     )
                     img_bgr = selected_frame_bgr
+                    st.session_state.video_manual_mode_active = False
+                    st.session_state.video_current_frame_info = {
+                        "frame_index": selected_track["frame_index"],
+                        "timestamp_seconds": selected_track["timestamp_seconds"],
+                        "fps": video_analysis.get("fps", 25.0),
+                        "frame_jpeg": selected_track.get("frame_jpeg"),
+                    }
                     video_stem = os.path.splitext(
                         os.path.basename(video_analysis["video_name"])
                     )[0]
@@ -2050,6 +2257,88 @@ if selected_section == NAV_SECTIONS[0]:
                     st.error("Impossible de relire la meilleure frame sélectionnée.")
             else:
                 st.info("Aucun défaut suivi n'a été détecté dans les frames analysées.")
+
+            st.markdown("---")
+            st.subheader("🎞️ Corriger une frame vidéo manuellement")
+            st.caption(
+                "Si YOLO ne sélectionne aucune frame, choisissez une frame ici, dessinez les défauts, "
+                "puis ajoutez-les au résultat final vidéo."
+            )
+            frame_probe_bgr, frame_probe_info = extract_video_frame(
+                video_bytes, 0, uploaded_video.name
+            )
+            total_video_frames = int(
+                video_analysis.get("total_frames")
+                or frame_probe_info.get("total_frames", 0)
+                or 1
+            )
+            manual_frame_col, manual_load_col = st.columns([2, 1])
+            with manual_frame_col:
+                manual_frame_index = st.number_input(
+                    "Numéro de frame à corriger",
+                    min_value=0,
+                    max_value=max(0, total_video_frames - 1),
+                    value=min(
+                        int(st.session_state.get("video_manual_frame_index", 0) or 0),
+                        max(0, total_video_frames - 1),
+                    ),
+                    step=1,
+                    key="video_manual_frame_index",
+                )
+            with manual_load_col:
+                load_manual_frame = st.button(
+                    "Charger cette frame",
+                    use_container_width=True,
+                    key="load_manual_video_frame",
+                )
+
+            if load_manual_frame:
+                manual_bgr, manual_info = extract_video_frame(
+                    video_bytes, int(manual_frame_index), uploaded_video.name
+                )
+                if manual_bgr is None:
+                    st.error("Impossible de charger cette frame.")
+                else:
+                    st.session_state.video_manual_frame_info = manual_info
+                    st.session_state.video_manual_mode_active = True
+                    st.session_state.video_editor_key = None
+                    st.session_state.video_editor_boxes = []
+                    st.session_state.canvas_key += 1
+                    st.rerun()
+
+            manual_info = st.session_state.get("video_manual_frame_info")
+            if (
+                st.session_state.get("video_manual_mode_active")
+                and manual_info
+                and manual_info.get("frame_jpeg")
+            ):
+                frame_array = np.frombuffer(manual_info["frame_jpeg"], np.uint8)
+                manual_frame_bgr = cv2.imdecode(frame_array, cv2.IMREAD_COLOR)
+                if manual_frame_bgr is not None:
+                    img_bgr = manual_frame_bgr
+                    st.session_state.video_current_frame_info = manual_info
+                    video_stem = os.path.splitext(os.path.basename(uploaded_video.name))[0]
+                    safe_stem = "".join(
+                        char if char.isalnum() else "_" for char in video_stem
+                    ).strip("_") or "video"
+                    filename = (
+                        f"{safe_stem}_manual_frame_{int(manual_info['frame_index']):07d}.jpg"
+                    )
+                    editor_key = (
+                        f"{st.session_state.video_upload_hash}:manual:"
+                        f"{manual_info['frame_index']}"
+                    )
+                    if st.session_state.get("video_editor_key") != editor_key:
+                        st.session_state.video_editor_key = editor_key
+                        st.session_state.video_editor_boxes = []
+                    st.image(
+                        cv2.cvtColor(manual_frame_bgr, cv2.COLOR_BGR2RGB),
+                        caption=(
+                            f"Frame manuelle {manual_info['frame_index']} "
+                            f"à {manual_info.get('timestamp_seconds', 0):.2f}s"
+                        ),
+                        use_container_width=True,
+                    )
 
     else:
         uploaded_batch = st.file_uploader(
@@ -2481,6 +2770,110 @@ if selected_section == NAV_SECTIONS[0]:
                             save_history("tab1")
                             st.session_state.tab1_boxes.pop(idx)
                             st.warning(f"BBox #{idx+1} supprimée !")
+
+            if work_mode == "🎥 Une vidéo":
+                st.markdown("---")
+                st.markdown("### 🎬 Résultat final vidéo")
+                current_frame_info = st.session_state.get("video_current_frame_info") or {}
+                current_frame_index = int(current_frame_info.get("frame_index", 0) or 0)
+                default_frame_gap = 5
+                if st.session_state.get("video_analysis"):
+                    default_frame_gap = int(
+                        max(3, min(30, st.session_state.video_analysis.get("frame_stride", 5)))
+                    )
+                frame_radius = st.number_input(
+                    "Lissage tracker/correction (frames)",
+                    min_value=1,
+                    max_value=120,
+                    value=default_frame_gap,
+                    step=1,
+                    key="video_annotation_frame_radius",
+                    help="Plus bas = moins d'accumulation. Plus haut = suivi plus continu entre deux frames analysées.",
+                )
+                include_auto_tracks = st.checkbox(
+                    "Inclure les pistes YOLO automatiques dans la vidéo finale",
+                    value=True,
+                    key="video_render_include_auto_tracks",
+                )
+                add_disabled = not st.session_state.tab1_boxes or not current_frame_info
+                if st.button(
+                    "➕ Ajouter ces boîtes au résultat vidéo",
+                    use_container_width=True,
+                    disabled=add_disabled,
+                    key="add_manual_video_tracks",
+                ):
+                    # Replace previous manual corrections for the same frame.
+                    st.session_state.video_manual_tracks = [
+                        item for item in st.session_state.video_manual_tracks
+                        if int(item.get("frame_index", -1)) != current_frame_index
+                    ]
+                    for correction_index, item in enumerate(st.session_state.tab1_boxes, start=1):
+                        st.session_state.video_manual_tracks.append({
+                            "track_id": f"manuel-{current_frame_index:07d}-{correction_index}",
+                            "class_id": int(item["class_id"]),
+                            "model_class_id": int(item.get("model_class_id", item["class_id"])),
+                            "model_class_name": item.get("model_class_name", get_dataset_class_name(item["class_id"])),
+                            "bbox": [int(value) for value in item["box"]],
+                            "observations": [{
+                                "frame_index": current_frame_index,
+                                "bbox": [int(value) for value in item["box"]],
+                                "confidence": float(item.get("conf", 1.0)),
+                            }],
+                            "confidence": float(item.get("conf", 1.0)),
+                            "frame_index": current_frame_index,
+                            "timestamp_seconds": float(current_frame_info.get("timestamp_seconds", 0.0) or 0.0),
+                            "frames_seen": 1,
+                            "best_score": 1.0,
+                            "frame_radius": int(frame_radius),
+                            "source": "manual_video_correction",
+                        })
+                    st.success(
+                        f"{len(st.session_state.tab1_boxes)} correction(s) ajoutée(s) pour la frame {current_frame_index}."
+                    )
+
+                manual_count = len(st.session_state.video_manual_tracks)
+                auto_tracks = []
+                if st.session_state.get("video_analysis"):
+                    auto_tracks = st.session_state.video_analysis.get("tracks", [])
+                st.caption(
+                    f"Pistes automatiques : {len(auto_tracks)} | Corrections manuelles : {manual_count}"
+                )
+                if st.button(
+                    "🎞️ Générer la vidéo avec tracker/corrections",
+                    use_container_width=True,
+                    disabled=not (auto_tracks or st.session_state.video_manual_tracks),
+                    key="render_corrected_video",
+                ):
+                    video_analysis_for_render = st.session_state.get("video_analysis") or {}
+                    render_tracks = [
+                        dict(item, frame_radius=int(frame_radius))
+                        for item in video_analysis_for_render.get("tracks", [])
+                    ] if include_auto_tracks else []
+                    render_tracks += [dict(item) for item in st.session_state.video_manual_tracks]
+                    try:
+                        with st.spinner("Génération de la vidéo corrigée..."):
+                            render_path = render_corrected_video(
+                                video_bytes,
+                                uploaded_video.name,
+                                render_tracks,
+                                os.path.join(base_dir, "video_exports"),
+                                frame_radius=int(frame_radius),
+                            )
+                        st.session_state.video_render_path = render_path
+                        st.success(f"Vidéo générée : `{os.path.basename(render_path)}`")
+                    except Exception as render_error:
+                        st.error(f"Impossible de générer la vidéo corrigée : {render_error}")
+
+                render_path = st.session_state.get("video_render_path")
+                if render_path and os.path.exists(render_path):
+                    with open(render_path, "rb") as rendered_video:
+                        st.download_button(
+                            "⬇️ Télécharger la vidéo corrigée",
+                            data=rendered_video.read(),
+                            file_name=os.path.basename(render_path),
+                            mime="video/mp4",
+                            use_container_width=True,
+                        )
 
             if work_mode in {"📷 Une image", "📁 Plusieurs images ou ZIP"}:
                 st.markdown("---")
