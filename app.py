@@ -11,11 +11,28 @@ from datetime import datetime
 from collections import defaultdict
 
 import streamlit as st
-import cv2
 import numpy as np
 from PIL import Image
 from ultralytics import YOLO
 from dataset_split import prepare_train_val_test_split, summarize_dataset_split, sync_existing_split_item
+
+_cv2 = None
+
+class LazyCV2:
+    def __getattr__(self, name):
+        global _cv2
+        if _cv2 is None:
+            try:
+                import cv2 as module
+                _cv2 = module
+            except Exception as exc:
+                raise RuntimeError(
+                    "OpenCV import failed. Install opencv-python-headless or opencv-python. "
+                    "Ensure your deployment environment has CV2 available."
+                ) from exc
+        return getattr(_cv2, name)
+
+cv2 = LazyCV2()
 
 BEST2_CLASS_CATALOG = ['crack', 'dent', 'glass shatter', 'lamp broken', 'scratch', 'tire flat']
 DEFAULT_CLASS_CATALOG = BEST2_CLASS_CATALOG
