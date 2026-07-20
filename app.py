@@ -13,10 +13,10 @@ from collections import defaultdict
 import streamlit as st
 import numpy as np
 from PIL import Image
-from ultralytics import YOLO
 from dataset_split import prepare_train_val_test_split, summarize_dataset_split, sync_existing_split_item
 
 _cv2 = None
+_yolo = None
 
 class LazyCV2:
     def __getattr__(self, name):
@@ -32,7 +32,21 @@ class LazyCV2:
                 ) from exc
         return getattr(_cv2, name)
 
+class LazyYOLO:
+    def __call__(self, *args, **kwargs):
+        global _yolo
+        if _yolo is None:
+            try:
+                from ultralytics import YOLO as YOLOClass
+                _yolo = YOLOClass
+            except Exception as exc:
+                raise RuntimeError(
+                    "YOLO import failed. Ensure ultralytics and cv2 are properly installed."
+                ) from exc
+        return _yolo(*args, **kwargs)
+
 cv2 = LazyCV2()
+YOLO = LazyYOLO()
 
 BEST2_CLASS_CATALOG = ['crack', 'dent', 'glass shatter', 'lamp broken', 'scratch', 'tire flat']
 DEFAULT_CLASS_CATALOG = BEST2_CLASS_CATALOG
