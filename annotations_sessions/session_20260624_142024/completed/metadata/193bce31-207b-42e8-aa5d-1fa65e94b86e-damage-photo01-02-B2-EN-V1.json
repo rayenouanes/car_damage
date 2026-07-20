@@ -1,0 +1,142 @@
+{
+  "filename": "193bce31-207b-42e8-aa5d-1fa65e94b86e-damage-photo01-02-B2-EN-V1.jpg",
+  "annotation_timestamp": "2026-06-24T18:15:00.693081",
+  "annotation_source": "tab1",
+  "annotation_model_name": "Référence unique (best_2.pt)",
+  "annotation_model_path": "best_2.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "crack",
+      "dataset_id": 0,
+      "dataset_name": "crack"
+    },
+    {
+      "id": 1,
+      "name": "dent",
+      "dataset_id": 1,
+      "dataset_name": "dent"
+    },
+    {
+      "id": 2,
+      "name": "glass shatter",
+      "dataset_id": 2,
+      "dataset_name": "glass shatter"
+    },
+    {
+      "id": 3,
+      "name": "lamp broken",
+      "dataset_id": 3,
+      "dataset_name": "lamp broken"
+    },
+    {
+      "id": 4,
+      "name": "scratch",
+      "dataset_id": 4,
+      "dataset_name": "scratch"
+    },
+    {
+      "id": 5,
+      "name": "tire flat",
+      "dataset_id": 5,
+      "dataset_name": "tire flat"
+    }
+  ],
+  "annotation_boxes_count": 4,
+  "annotation_masks_count": 0,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": false,
+  "non_final_classes_present": [],
+  "final_dataset_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "dataset_class_standard": "best_2 canonical: 0=crack, 1=dent, 2=glass shatter, 3=lamp broken, 4=scratch, 5=tire flat",
+  "boxes": [
+    {
+      "class_id": 1,
+      "class_name": "dent",
+      "class_display": "Bosse (Dent)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 258,
+        "y1": 290,
+        "x2": 385,
+        "y2": 341
+      },
+      "bbox_yolo": {
+        "x_center": 0.782238,
+        "y_center": 0.374703,
+        "width": 0.309002,
+        "height": 0.06057
+      }
+    },
+    {
+      "class_id": 1,
+      "class_name": "dent",
+      "class_display": "Bosse (Dent)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 184,
+        "y1": 435,
+        "x2": 297,
+        "y2": 509
+      },
+      "bbox_yolo": {
+        "x_center": 0.585158,
+        "y_center": 0.56057,
+        "width": 0.274939,
+        "height": 0.087886
+      }
+    },
+    {
+      "class_id": 1,
+      "class_name": "dent",
+      "class_display": "Bosse (Dent)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 108,
+        "y1": 372,
+        "x2": 247,
+        "y2": 415
+      },
+      "bbox_yolo": {
+        "x_center": 0.431873,
+        "y_center": 0.46734,
+        "width": 0.3382,
+        "height": 0.051069
+      }
+    },
+    {
+      "class_id": 1,
+      "class_name": "dent",
+      "class_display": "Bosse (Dent)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 330,
+        "y1": 458,
+        "x2": 375,
+        "y2": 510
+      },
+      "bbox_yolo": {
+        "x_center": 0.857664,
+        "y_center": 0.574822,
+        "width": 0.109489,
+        "height": 0.061758
+      }
+    }
+  ],
+  "session_name": "session_20260624_142024"
+}

@@ -1,0 +1,370 @@
+{
+  "filename": "05dad560-8d8a-4727-96da-51b812a6a922-damage-photo01-03-B6-RE-V1.jpg",
+  "annotation_timestamp": "2026-06-24T16:20:54.240572",
+  "annotation_source": "tab1",
+  "annotation_model_name": "Référence unique (best_2.pt)",
+  "annotation_model_path": "best_2.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "crack",
+      "dataset_id": 0,
+      "dataset_name": "crack"
+    },
+    {
+      "id": 1,
+      "name": "dent",
+      "dataset_id": 1,
+      "dataset_name": "dent"
+    },
+    {
+      "id": 2,
+      "name": "glass shatter",
+      "dataset_id": 2,
+      "dataset_name": "glass shatter"
+    },
+    {
+      "id": 3,
+      "name": "lamp broken",
+      "dataset_id": 3,
+      "dataset_name": "lamp broken"
+    },
+    {
+      "id": 4,
+      "name": "scratch",
+      "dataset_id": 4,
+      "dataset_name": "scratch"
+    },
+    {
+      "id": 5,
+      "name": "tire flat",
+      "dataset_id": 5,
+      "dataset_name": "tire flat"
+    }
+  ],
+  "annotation_boxes_count": 1,
+  "annotation_masks_count": 1,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": false,
+  "non_final_classes_present": [],
+  "final_dataset_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "dataset_class_standard": "best_2 canonical: 0=crack, 1=dent, 2=glass shatter, 3=lamp broken, 4=scratch, 5=tire flat",
+  "boxes": [
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": 4,
+      "source_model_class_name": "scratch",
+      "confidence": 0.46522197127342224,
+      "bbox_pixels": {
+        "x1": 133,
+        "y1": 141,
+        "x2": 199,
+        "y2": 233
+      },
+      "bbox_yolo": {
+        "x_center": 0.495522,
+        "y_center": 0.292187,
+        "width": 0.197015,
+        "height": 0.14375
+      },
+      "mask_polygon_pixels": [
+        [
+          186,
+          135
+        ],
+        [
+          180,
+          138
+        ],
+        [
+          174,
+          137
+        ],
+        [
+          172,
+          139
+        ],
+        [
+          172,
+          141
+        ],
+        [
+          170,
+          144
+        ],
+        [
+          170,
+          147
+        ],
+        [
+          169,
+          148
+        ],
+        [
+          169,
+          151
+        ],
+        [
+          167,
+          154
+        ],
+        [
+          167,
+          156
+        ],
+        [
+          165,
+          158
+        ],
+        [
+          165,
+          160
+        ],
+        [
+          161,
+          166
+        ],
+        [
+          156,
+          176
+        ],
+        [
+          156,
+          178
+        ],
+        [
+          151,
+          184
+        ],
+        [
+          151,
+          186
+        ],
+        [
+          149,
+          188
+        ],
+        [
+          149,
+          191
+        ],
+        [
+          147,
+          194
+        ],
+        [
+          146,
+          199
+        ],
+        [
+          143,
+          203
+        ],
+        [
+          143,
+          205
+        ],
+        [
+          140,
+          208
+        ],
+        [
+          140,
+          210
+        ],
+        [
+          138,
+          212
+        ],
+        [
+          136,
+          218
+        ],
+        [
+          133,
+          221
+        ],
+        [
+          131,
+          226
+        ],
+        [
+          131,
+          229
+        ],
+        [
+          139,
+          220
+        ],
+        [
+          140,
+          221
+        ],
+        [
+          143,
+          221
+        ],
+        [
+          147,
+          217
+        ],
+        [
+          148,
+          214
+        ],
+        [
+          153,
+          208
+        ],
+        [
+          153,
+          204
+        ],
+        [
+          155,
+          200
+        ],
+        [
+          155,
+          197
+        ],
+        [
+          159,
+          191
+        ],
+        [
+          160,
+          187
+        ],
+        [
+          162,
+          186
+        ],
+        [
+          167,
+          180
+        ],
+        [
+          170,
+          179
+        ],
+        [
+          170,
+          178
+        ],
+        [
+          172,
+          177
+        ],
+        [
+          177,
+          171
+        ],
+        [
+          178,
+          173
+        ],
+        [
+          179,
+          170
+        ],
+        [
+          181,
+          169
+        ],
+        [
+          180,
+          167
+        ],
+        [
+          180,
+          163
+        ],
+        [
+          182,
+          161
+        ],
+        [
+          183,
+          162
+        ],
+        [
+          183,
+          165
+        ],
+        [
+          182,
+          166
+        ],
+        [
+          183,
+          167
+        ],
+        [
+          183,
+          170
+        ],
+        [
+          185,
+          169
+        ],
+        [
+          185,
+          165
+        ],
+        [
+          186,
+          164
+        ],
+        [
+          186,
+          162
+        ],
+        [
+          188,
+          161
+        ],
+        [
+          186,
+          159
+        ],
+        [
+          185,
+          155
+        ],
+        [
+          188,
+          152
+        ],
+        [
+          187,
+          146
+        ],
+        [
+          188,
+          145
+        ],
+        [
+          188,
+          143
+        ],
+        [
+          190,
+          141
+        ]
+      ],
+      "mask_confidence": 0.7787634134292603,
+      "mask_path": "C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\Data7.off\\masks\\05dad560-8d8a-4727-96da-51b812a6a922-damage-photo01-03-B6-RE-V1_000.png"
+    }
+  ],
+  "session_name": "session_20260624_142024"
+}

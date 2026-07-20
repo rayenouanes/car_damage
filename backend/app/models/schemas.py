@@ -182,6 +182,7 @@ class ExportSplitRequest(BaseModel):
 class InferenceRequest(BaseModel):
     force: bool = False
     mode: PipelineMode = PipelineMode.training
+    enable_sam2: bool = True
 
 
 class AuditRequest(BaseModel):

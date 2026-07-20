@@ -1,0 +1,141 @@
+{
+  "filename": "Severe-dents--5-_jpg.rf.dd55dc0b3240abb6dc656fbbb357bbaa.jpg",
+  "annotation_timestamp": "2026-06-16T17:12:03.251515",
+  "annotation_source": "tab2",
+  "annotation_model_name": "Référence unique (best_2.pt)",
+  "annotation_model_path": "best_2.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "crack",
+      "dataset_id": 0,
+      "dataset_name": "crack"
+    },
+    {
+      "id": 1,
+      "name": "dent",
+      "dataset_id": 1,
+      "dataset_name": "dent"
+    },
+    {
+      "id": 2,
+      "name": "glass shatter",
+      "dataset_id": 2,
+      "dataset_name": "glass shatter"
+    },
+    {
+      "id": 3,
+      "name": "lamp broken",
+      "dataset_id": 3,
+      "dataset_name": "lamp broken"
+    },
+    {
+      "id": 4,
+      "name": "scratch",
+      "dataset_id": 4,
+      "dataset_name": "scratch"
+    },
+    {
+      "id": 5,
+      "name": "tire flat",
+      "dataset_id": 5,
+      "dataset_name": "tire flat"
+    }
+  ],
+  "annotation_boxes_count": 4,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": false,
+  "non_final_classes_present": [],
+  "final_dataset_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "dataset_class_standard": "best_2 canonical: 0=crack, 1=dent, 2=glass shatter, 3=lamp broken, 4=scratch, 5=tire flat",
+  "boxes": [
+    {
+      "class_id": 1,
+      "class_name": "dent",
+      "class_display": "Bosse (Dent)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 73,
+        "y1": 114,
+        "x2": 400,
+        "y2": 359
+      },
+      "bbox_yolo": {
+        "x_center": 0.56851,
+        "y_center": 0.56851,
+        "width": 0.786058,
+        "height": 0.588942
+      }
+    },
+    {
+      "class_id": 3,
+      "class_name": "lamp broken",
+      "class_display": "Feu/Phare cassé (Lamp broken)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 283,
+        "y1": 176,
+        "x2": 383,
+        "y2": 262
+      },
+      "bbox_yolo": {
+        "x_center": 0.800481,
+        "y_center": 0.526442,
+        "width": 0.240385,
+        "height": 0.206731
+      }
+    },
+    {
+      "class_id": 3,
+      "class_name": "lamp broken",
+      "class_display": "Feu/Phare cassé (Lamp broken)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 64,
+        "y1": 195,
+        "x2": 201,
+        "y2": 296
+      },
+      "bbox_yolo": {
+        "x_center": 0.31851,
+        "y_center": 0.590144,
+        "width": 0.329327,
+        "height": 0.242788
+      }
+    },
+    {
+      "class_id": 1,
+      "class_name": "dent",
+      "class_display": "Bosse (Dent)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 148,
+        "y1": 210,
+        "x2": 279,
+        "y2": 344
+      },
+      "bbox_yolo": {
+        "x_center": 0.513221,
+        "y_center": 0.665865,
+        "width": 0.314904,
+        "height": 0.322115
+      }
+    }
+  ],
+  "session_name": "session_20260616_170111"
+}

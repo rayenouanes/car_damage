@@ -1,0 +1,10 @@
+{
+  "model_name": "data7_from_best_2_20260618_163434.pt",
+  "model_path": "C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\data7_from_best_2_20260618_163434.pt",
+  "evaluation_date": "2026-06-18 22:23:32",
+  "dataset_path": "dataset_annote/data.yaml",
+  "split": "test",
+  "test_images_count": 125,
+  "imgsz": 640,
+  "epochs_used_for_training": 20
+}

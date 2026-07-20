@@ -1,0 +1,70 @@
+{
+  "precision": 0.6585094853981392,
+  "recall": 0.07752919656676516,
+  "f1": 0.1387256202302314,
+  "map50": 0.034990692417449926,
+  "map50_95": 0.010670701047655632,
+  "inference_speed_ms": 4939.126971200167,
+  "per_class": {
+    "0": {
+      "class_id": 0,
+      "class_name": "crack",
+      "class_display": "Fissure (Crack)",
+      "precision": 1.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "map50": 0.0009143968871595332,
+      "map50_95": 0.00013323863051489514
+    },
+    "1": {
+      "class_id": 1,
+      "class_name": "dent",
+      "class_display": "Bosse (Dent)",
+      "precision": 0.15181115859181896,
+      "recall": 0.24271844660194175,
+      "f1": 0.18679139970827238,
+      "map50": 0.08661490410502741,
+      "map50_95": 0.02987743988169499
+    },
+    "2": {
+      "class_id": 2,
+      "class_name": "glass shatter",
+      "class_display": "Vitre brisée (Glass shatter)",
+      "precision": 1.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "map50": 0.0,
+      "map50_95": 0.0
+    },
+    "3": {
+      "class_id": 3,
+      "class_name": "lamp broken",
+      "class_display": "Feu/Phare cassé (Lamp broken)",
+      "precision": 1.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "map50": 0.0,
+      "map50_95": 0.0
+    },
+    "4": {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "precision": 0.14073626839887748,
+      "recall": 0.14492753623188406,
+      "f1": 0.14280115511226432,
+      "map50": 0.08742416109506268,
+      "map50_95": 0.023342826726068282
+    },
+    "5": {
+      "class_id": 5,
+      "class_name": "tire flat",
+      "class_display": "Pneu crevé (Tire flat)",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "map50": 0.0,
+      "map50_95": 0.0
+    }
+  }
+}

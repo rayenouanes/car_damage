@@ -1,0 +1,181 @@
+{
+  "filename": "Severe-dents--83-_jpg.rf.809b64fed36a8a1bdd96dc54076a95d7.jpg",
+  "annotation_timestamp": "2026-06-17T10:28:14.704966",
+  "annotation_source": "tab2",
+  "annotation_model_name": "Référence unique (best_2.pt)",
+  "annotation_model_path": "best_2.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "crack",
+      "dataset_id": 0,
+      "dataset_name": "crack"
+    },
+    {
+      "id": 1,
+      "name": "dent",
+      "dataset_id": 1,
+      "dataset_name": "dent"
+    },
+    {
+      "id": 2,
+      "name": "glass shatter",
+      "dataset_id": 2,
+      "dataset_name": "glass shatter"
+    },
+    {
+      "id": 3,
+      "name": "lamp broken",
+      "dataset_id": 3,
+      "dataset_name": "lamp broken"
+    },
+    {
+      "id": 4,
+      "name": "scratch",
+      "dataset_id": 4,
+      "dataset_name": "scratch"
+    },
+    {
+      "id": 5,
+      "name": "tire flat",
+      "dataset_id": 5,
+      "dataset_name": "tire flat"
+    }
+  ],
+  "annotation_boxes_count": 6,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": false,
+  "non_final_classes_present": [],
+  "final_dataset_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "dataset_class_standard": "best_2 canonical: 0=crack, 1=dent, 2=glass shatter, 3=lamp broken, 4=scratch, 5=tire flat",
+  "boxes": [
+    {
+      "class_id": 1,
+      "class_name": "dent",
+      "class_display": "Bosse (Dent)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 138,
+        "y1": 48,
+        "x2": 242,
+        "y2": 258
+      },
+      "bbox_yolo": {
+        "x_center": 0.456731,
+        "y_center": 0.367788,
+        "width": 0.25,
+        "height": 0.504808
+      }
+    },
+    {
+      "class_id": 1,
+      "class_name": "dent",
+      "class_display": "Bosse (Dent)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 346,
+        "y1": 108,
+        "x2": 368,
+        "y2": 150
+      },
+      "bbox_yolo": {
+        "x_center": 0.858173,
+        "y_center": 0.310096,
+        "width": 0.052885,
+        "height": 0.100962
+      }
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 377,
+        "y1": 69,
+        "x2": 406,
+        "y2": 105
+      },
+      "bbox_yolo": {
+        "x_center": 0.941106,
+        "y_center": 0.209135,
+        "width": 0.069712,
+        "height": 0.086538
+      }
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 287,
+        "y1": 190,
+        "x2": 323,
+        "y2": 272
+      },
+      "bbox_yolo": {
+        "x_center": 0.733173,
+        "y_center": 0.555288,
+        "width": 0.086538,
+        "height": 0.197115
+      }
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 180,
+        "y1": 42,
+        "x2": 236,
+        "y2": 255
+      },
+      "bbox_yolo": {
+        "x_center": 0.5,
+        "y_center": 0.356971,
+        "width": 0.134615,
+        "height": 0.512019
+      }
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 93,
+        "y1": 249,
+        "x2": 133,
+        "y2": 289
+      },
+      "bbox_yolo": {
+        "x_center": 0.271635,
+        "y_center": 0.646635,
+        "width": 0.096154,
+        "height": 0.096154
+      }
+    }
+  ],
+  "session_name": "session_20260617_102635"
+}

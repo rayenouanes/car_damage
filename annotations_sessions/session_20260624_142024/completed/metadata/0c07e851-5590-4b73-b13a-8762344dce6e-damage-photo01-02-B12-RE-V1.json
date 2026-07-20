@@ -1,0 +1,386 @@
+{
+  "filename": "0c07e851-5590-4b73-b13a-8762344dce6e-damage-photo01-02-B12-RE-V1.jpg",
+  "annotation_timestamp": "2026-06-24T14:52:47.148785",
+  "annotation_source": "tab1",
+  "annotation_model_name": "Référence unique (best_2.pt)",
+  "annotation_model_path": "best_2.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "crack",
+      "dataset_id": 0,
+      "dataset_name": "crack"
+    },
+    {
+      "id": 1,
+      "name": "dent",
+      "dataset_id": 1,
+      "dataset_name": "dent"
+    },
+    {
+      "id": 2,
+      "name": "glass shatter",
+      "dataset_id": 2,
+      "dataset_name": "glass shatter"
+    },
+    {
+      "id": 3,
+      "name": "lamp broken",
+      "dataset_id": 3,
+      "dataset_name": "lamp broken"
+    },
+    {
+      "id": 4,
+      "name": "scratch",
+      "dataset_id": 4,
+      "dataset_name": "scratch"
+    },
+    {
+      "id": 5,
+      "name": "tire flat",
+      "dataset_id": 5,
+      "dataset_name": "tire flat"
+    }
+  ],
+  "annotation_boxes_count": 2,
+  "annotation_masks_count": 1,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": false,
+  "non_final_classes_present": [],
+  "final_dataset_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "dataset_class_standard": "best_2 canonical: 0=crack, 1=dent, 2=glass shatter, 3=lamp broken, 4=scratch, 5=tire flat",
+  "boxes": [
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": 4,
+      "source_model_class_name": "scratch",
+      "confidence": 0.8655787706375122,
+      "bbox_pixels": {
+        "x1": 298,
+        "y1": 112,
+        "x2": 370,
+        "y2": 158
+      },
+      "bbox_yolo": {
+        "x_center": 0.561345,
+        "y_center": 0.456081,
+        "width": 0.121008,
+        "height": 0.155405
+      },
+      "mask_polygon_pixels": [
+        [
+          298,
+          126
+        ],
+        [
+          299,
+          126
+        ],
+        [
+          305,
+          132
+        ],
+        [
+          306,
+          132
+        ],
+        [
+          313,
+          140
+        ],
+        [
+          313,
+          141
+        ],
+        [
+          314,
+          142
+        ],
+        [
+          314,
+          144
+        ],
+        [
+          316,
+          147
+        ],
+        [
+          317,
+          152
+        ],
+        [
+          319,
+          154
+        ],
+        [
+          318,
+          155
+        ],
+        [
+          320,
+          155
+        ],
+        [
+          320,
+          153
+        ],
+        [
+          321,
+          152
+        ],
+        [
+          324,
+          153
+        ],
+        [
+          325,
+          152
+        ],
+        [
+          334,
+          152
+        ],
+        [
+          335,
+          151
+        ],
+        [
+          339,
+          151
+        ],
+        [
+          340,
+          152
+        ],
+        [
+          341,
+          151
+        ],
+        [
+          343,
+          151
+        ],
+        [
+          344,
+          152
+        ],
+        [
+          345,
+          152
+        ],
+        [
+          346,
+          151
+        ],
+        [
+          348,
+          151
+        ],
+        [
+          349,
+          152
+        ],
+        [
+          354,
+          152
+        ],
+        [
+          355,
+          153
+        ],
+        [
+          354,
+          154
+        ],
+        [
+          355,
+          155
+        ],
+        [
+          354,
+          156
+        ],
+        [
+          356,
+          156
+        ],
+        [
+          358,
+          154
+        ],
+        [
+          361,
+          154
+        ],
+        [
+          364,
+          152
+        ],
+        [
+          364,
+          151
+        ],
+        [
+          363,
+          150
+        ],
+        [
+          364,
+          149
+        ],
+        [
+          363,
+          148
+        ],
+        [
+          363,
+          145
+        ],
+        [
+          364,
+          144
+        ],
+        [
+          364,
+          138
+        ],
+        [
+          365,
+          137
+        ],
+        [
+          365,
+          129
+        ],
+        [
+          364,
+          128
+        ],
+        [
+          364,
+          125
+        ],
+        [
+          363,
+          124
+        ],
+        [
+          363,
+          122
+        ],
+        [
+          362,
+          121
+        ],
+        [
+          360,
+          121
+        ],
+        [
+          359,
+          120
+        ],
+        [
+          358,
+          120
+        ],
+        [
+          357,
+          121
+        ],
+        [
+          353,
+          121
+        ],
+        [
+          352,
+          120
+        ],
+        [
+          350,
+          120
+        ],
+        [
+          349,
+          119
+        ],
+        [
+          320,
+          119
+        ],
+        [
+          319,
+          118
+        ],
+        [
+          318,
+          118
+        ],
+        [
+          316,
+          120
+        ],
+        [
+          309,
+          120
+        ],
+        [
+          308,
+          121
+        ],
+        [
+          304,
+          121
+        ],
+        [
+          304,
+          123
+        ],
+        [
+          302,
+          125
+        ],
+        [
+          300,
+          125
+        ],
+        [
+          299,
+          126
+        ]
+      ],
+      "mask_confidence": 0.867575466632843,
+      "mask_path": "C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\Data7.off\\masks\\0c07e851-5590-4b73-b13a-8762344dce6e-damage-photo01-02-B12-RE-V1_000.png"
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 542,
+        "y1": 118,
+        "x2": 565,
+        "y2": 133
+      },
+      "bbox_yolo": {
+        "x_center": 0.930252,
+        "y_center": 0.423986,
+        "width": 0.038655,
+        "height": 0.050676
+      }
+    }
+  ],
+  "session_name": "session_20260624_142024"
+}

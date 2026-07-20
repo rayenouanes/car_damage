@@ -1,0 +1,12 @@
+path: "C:/Users/p134929/CascadeProjects/CarDamageDetection/dataset_annote"
+train: "train/images"
+val: "val/images"
+test: "test/images"
+
+names:
+  0: crack
+  1: dent
+  2: glass shatter
+  3: lamp broken
+  4: scratch
+  5: tire flat

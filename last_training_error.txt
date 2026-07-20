@@ -1,0 +1,63 @@
+Traceback (most recent call last):
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\data\dataset.py", line 172, in get_labels
+    cache, exists = load_dataset_cache_file(cache_path), True  # attempt to load a *.cache file
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\data\utils.py", line 852, in load_dataset_cache_file
+    cache = np.load(str(path), allow_pickle=True).item()  # load dict
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\numpy\lib\_npyio_impl.py", line 454, in load
+    fid = stack.enter_context(open(os.fspath(file), "rb"))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\dataset_annote\\train\\labels.cache'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\scripts\resume_training_21_to_40.py", line 133, in main
+    model.train(resume=True)
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\engine\model.py", line 792, in train
+    self.trainer.train()
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\engine\trainer.py", line 246, in train
+    self._do_train()
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\engine\trainer.py", line 382, in _do_train
+    self._setup_train()
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\engine\trainer.py", line 363, in _setup_train
+    self._build_train_pipeline()
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\engine\trainer.py", line 271, in _build_train_pipeline
+    self.train_loader = self.get_dataloader(
+                        ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\models\yolo\detect\train.py", line 93, in get_dataloader
+    dataset = self.build_dataset(dataset_path, mode, batch_size)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\models\yolo\detect\train.py", line 77, in build_dataset
+    return build_yolo_dataset(self.args, img_path, batch, self.data, mode=mode, rect=mode == "val", stride=gs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\data\build.py", line 259, in build_yolo_dataset
+    return dataset(
+           ^^^^^^^^
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\data\dataset.py", line 91, in __init__
+    super().__init__(*args, channels=self.data.get("channels", 3), **kwargs)
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\data\base.py", line 118, in __init__
+    self.labels = self.get_labels()
+                  ^^^^^^^^^^^^^^^^^
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\data\dataset.py", line 176, in get_labels
+    cache, exists = self.cache_labels(cache_path), False  # run cache ops
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\p134929\CascadeProjects\CarDamageDetection\.venv-gpu\Lib\site-packages\ultralytics\data\dataset.py", line 112, in cache_labels
+    with ThreadPool(NUM_THREADS) as pool:
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\p134929\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\pool.py", line 930, in __init__
+    Pool.__init__(self, processes, initializer, initargs)
+  File "C:\Users\p134929\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\pool.py", line 196, in __init__
+    self._change_notifier = self._ctx.SimpleQueue()
+                            ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\p134929\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\context.py", line 113, in SimpleQueue
+    return SimpleQueue(ctx=self.get_context())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\p134929\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\queues.py", line 362, in __init__
+    self._reader, self._writer = connection.Pipe(duplex=False)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\p134929\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\connection.py", line 575, in Pipe
+    h2 = _winapi.CreateFile(
+         ^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Accès refusé

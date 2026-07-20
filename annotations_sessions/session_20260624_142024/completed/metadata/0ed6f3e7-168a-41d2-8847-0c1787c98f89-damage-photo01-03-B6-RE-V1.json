@@ -1,0 +1,358 @@
+{
+  "filename": "0ed6f3e7-168a-41d2-8847-0c1787c98f89-damage-photo01-03-B6-RE-V1.jpg",
+  "annotation_timestamp": "2026-06-24T15:25:43.868862",
+  "annotation_source": "tab1",
+  "annotation_model_name": "Référence unique (best_2.pt)",
+  "annotation_model_path": "best_2.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "crack",
+      "dataset_id": 0,
+      "dataset_name": "crack"
+    },
+    {
+      "id": 1,
+      "name": "dent",
+      "dataset_id": 1,
+      "dataset_name": "dent"
+    },
+    {
+      "id": 2,
+      "name": "glass shatter",
+      "dataset_id": 2,
+      "dataset_name": "glass shatter"
+    },
+    {
+      "id": 3,
+      "name": "lamp broken",
+      "dataset_id": 3,
+      "dataset_name": "lamp broken"
+    },
+    {
+      "id": 4,
+      "name": "scratch",
+      "dataset_id": 4,
+      "dataset_name": "scratch"
+    },
+    {
+      "id": 5,
+      "name": "tire flat",
+      "dataset_id": 5,
+      "dataset_name": "tire flat"
+    }
+  ],
+  "annotation_boxes_count": 2,
+  "annotation_masks_count": 1,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": false,
+  "non_final_classes_present": [],
+  "final_dataset_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "dataset_class_standard": "best_2 canonical: 0=crack, 1=dent, 2=glass shatter, 3=lamp broken, 4=scratch, 5=tire flat",
+  "boxes": [
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": 4,
+      "source_model_class_name": "scratch",
+      "confidence": 0.5537199974060059,
+      "bbox_pixels": {
+        "x1": 146,
+        "y1": 590,
+        "x2": 325,
+        "y2": 837
+      },
+      "bbox_yolo": {
+        "x_center": 0.563397,
+        "y_center": 0.847387,
+        "width": 0.42823,
+        "height": 0.293349
+      },
+      "mask_polygon_pixels": [
+        [
+          191,
+          594
+        ],
+        [
+          188,
+          597
+        ],
+        [
+          195,
+          600
+        ],
+        [
+          190,
+          609
+        ],
+        [
+          188,
+          605
+        ],
+        [
+          183,
+          615
+        ],
+        [
+          171,
+          616
+        ],
+        [
+          159,
+          622
+        ],
+        [
+          152,
+          631
+        ],
+        [
+          146,
+          633
+        ],
+        [
+          149,
+          646
+        ],
+        [
+          158,
+          659
+        ],
+        [
+          183,
+          708
+        ],
+        [
+          192,
+          718
+        ],
+        [
+          198,
+          735
+        ],
+        [
+          203,
+          738
+        ],
+        [
+          228,
+          787
+        ],
+        [
+          233,
+          791
+        ],
+        [
+          240,
+          809
+        ],
+        [
+          249,
+          818
+        ],
+        [
+          252,
+          828
+        ],
+        [
+          259,
+          837
+        ],
+        [
+          259,
+          841
+        ],
+        [
+          319,
+          841
+        ],
+        [
+          319,
+          822
+        ],
+        [
+          316,
+          817
+        ],
+        [
+          322,
+          814
+        ],
+        [
+          327,
+          815
+        ],
+        [
+          327,
+          810
+        ],
+        [
+          317,
+          792
+        ],
+        [
+          316,
+          782
+        ],
+        [
+          311,
+          778
+        ],
+        [
+          312,
+          772
+        ],
+        [
+          309,
+          764
+        ],
+        [
+          307,
+          763
+        ],
+        [
+          306,
+          767
+        ],
+        [
+          304,
+          765
+        ],
+        [
+          306,
+          761
+        ],
+        [
+          305,
+          753
+        ],
+        [
+          300,
+          749
+        ],
+        [
+          298,
+          738
+        ],
+        [
+          293,
+          734
+        ],
+        [
+          286,
+          720
+        ],
+        [
+          286,
+          715
+        ],
+        [
+          274,
+          696
+        ],
+        [
+          271,
+          685
+        ],
+        [
+          265,
+          682
+        ],
+        [
+          259,
+          668
+        ],
+        [
+          259,
+          662
+        ],
+        [
+          248,
+          655
+        ],
+        [
+          247,
+          645
+        ],
+        [
+          243,
+          640
+        ],
+        [
+          243,
+          636
+        ],
+        [
+          233,
+          626
+        ],
+        [
+          234,
+          623
+        ],
+        [
+          229,
+          612
+        ],
+        [
+          229,
+          617
+        ],
+        [
+          227,
+          618
+        ],
+        [
+          218,
+          607
+        ],
+        [
+          208,
+          608
+        ],
+        [
+          206,
+          602
+        ],
+        [
+          201,
+          598
+        ],
+        [
+          196,
+          599
+        ]
+      ],
+      "mask_confidence": 0.8869744539260864,
+      "mask_path": "C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\Data7.off\\masks\\0ed6f3e7-168a-41d2-8847-0c1787c98f89-damage-photo01-03-B6-RE-V1_000.png"
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 152,
+        "y1": 234,
+        "x2": 372,
+        "y2": 448
+      },
+      "bbox_yolo": {
+        "x_center": 0.626794,
+        "y_center": 0.404988,
+        "width": 0.526316,
+        "height": 0.254157
+      }
+    }
+  ],
+  "session_name": "session_20260624_142024"
+}

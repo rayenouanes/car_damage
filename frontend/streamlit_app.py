@@ -187,6 +187,15 @@ if page == "Dashboard jobs":
 
 elif page == "Upload video/images":
     st.header("Upload video/images")
+    if health:
+        sam2_provider = health.get("sam2_provider", "disabled")
+        if sam2_provider == "sam2":
+            st.success("SAM2 reel actif")
+        elif sam2_provider == "disabled":
+            st.warning("SAM2 desactive")
+        else:
+            st.info("SAM2 fonctionne actuellement en mode mock")
+    
     uploads = st.file_uploader(
         "Video MP4/MOV/AVI/MKV/WEBM ou plusieurs images",
         type=["mp4", "mov", "avi", "mkv", "webm", "jpg", "jpeg", "png", "bmp", "webp"],
@@ -214,12 +223,13 @@ elif page == "Upload video/images":
     job_id = job_selector("upload_job")
     if job_id:
         force = st.checkbox("Recalculer les predictions existantes")
+        enable_sam2 = st.checkbox("Activer SAM2 pour les images", value=True)
         if st.button("Lancer YOLO + active learning", type="primary"):
             try:
                 with st.spinner("Inference et analyse des cas prioritaires..."):
                     result = api(
                         "POST", f"/api/jobs/{job_id}/infer",
-                        json={"force": force, "mode": "training"},
+                        json={"force": force, "mode": "training", "enable_sam2": enable_sam2},
                     )
                 count = sum(len(image["predictions"]) for image in result["images"])
                 st.success(f"Inference terminee: {count} detection(s)")

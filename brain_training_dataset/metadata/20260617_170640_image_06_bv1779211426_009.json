@@ -1,0 +1,60 @@
+{
+  "sample_id": "20260617_170640_image_06_bv1779211426_009",
+  "source_filename": "image-06-B~v1779211426.jpg",
+  "crop_path": "brain_training_dataset\\crops\\plate_holder_damage\\20260617_170640_image_06_bv1779211426_009.png",
+  "metadata_path": "brain_training_dataset\\metadata\\20260617_170640_image_06_bv1779211426_009.json",
+  "final_label": "plate_holder_damage",
+  "yolo_label": "dent",
+  "yolo_conf": 0.3790978193283081,
+  "decision": "a_verifier",
+  "risk": "moyen",
+  "reasoning": "prompt: indices insuffisants pour une classe connue",
+  "vehicle_zone": "portes laterales",
+  "box": [
+    640,
+    479,
+    941,
+    667
+  ],
+  "crop_box": [
+    535,
+    414,
+    1046,
+    732
+  ],
+  "brain_mode": "equilibre",
+  "brain_prompt": "Raisonne comme un expert inspection carrosserie.\nRejette les reflets et les ombres si la zone est brillante mais sans lignes fines.\nConfirme une rayure seulement si elle contient une ligne fine ou un bord local coherent.\nSi une zone a l'avant ou autour de la plaque est deformee mais ne ressemble pas aux classes YOLO, classe-la front_bumper_damage ou unknown_damage.\nSi la prediction YOLO est faible et que la zone ressemble au decor reflete, rejette-la.",
+  "brain_rules": {
+    "mode": "equilibre",
+    "reject_reflections": true,
+    "strict_scratch": true,
+    "allow_unknown_damage": true,
+    "front_bumper_logic": true,
+    "plate_holder_logic": true,
+    "door_reflection_skeptic": true,
+    "small_scratch_recall": true,
+    "glare_reject_threshold": 0.45,
+    "scratch_confirm_threshold": 42.0,
+    "edge_confirm_threshold": 0.016,
+    "geometry_unknown_threshold": 0.56,
+    "geometry_reclass_threshold": 0.5,
+    "confidence_confirm_threshold": 0.65,
+    "unknown_label": "plate_holder_damage",
+    "activated_rules": [
+      "Reflets: rejeter les zones brillantes sans evidence locale.",
+      "Rayures: verifier la presence de lignes fines dans le crop.",
+      "Avant vehicule: reclasser deformation locale en front_bumper_damage.",
+      "Plaque/support: autoriser la classe plate_holder_damage.",
+      "Hors taxonomie: utiliser unknown_damage au lieu de forcer une classe YOLO."
+    ]
+  },
+  "metrics": {
+    "evidence": 0.9311481960423952,
+    "glare_cover": 0.0001413727292005372,
+    "scratch_p90": 72.0,
+    "edge_density": 0.08964798190429066,
+    "geometry_score": 0.21120629176974487,
+    "crop_contrast": "34.8",
+    "crop_sharpness": "226.2"
+  }
+}

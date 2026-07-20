@@ -1,0 +1,96 @@
+{
+  "filename": "image-15-B~v1779266786.jpg",
+  "annotation_timestamp": "2026-05-27T16:17:19.604580",
+  "annotation_source": "tab1",
+  "annotation_model_name": "Modèle Secondaire (best_2.pt)",
+  "annotation_model_path": "best_2.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "crack"
+    },
+    {
+      "id": 1,
+      "name": "dent"
+    },
+    {
+      "id": 2,
+      "name": "glass shatter"
+    },
+    {
+      "id": 3,
+      "name": "lamp broken"
+    },
+    {
+      "id": 4,
+      "name": "scratch"
+    },
+    {
+      "id": 5,
+      "name": "tire flat"
+    }
+  ],
+  "annotation_boxes_count": 3,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": true,
+  "non_final_classes_present": [],
+  "final_dataset_classes": {
+    "0": "scratch",
+    "1": "dent",
+    "2": "crack"
+  },
+  "boxes": [
+    {
+      "class_id": 1,
+      "class_name": "dent",
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 977,
+        "y1": 323,
+        "x2": 1158,
+        "y2": 491
+      },
+      "bbox_yolo": {
+        "x_center": 0.667188,
+        "y_center": 0.452222,
+        "width": 0.113125,
+        "height": 0.186667
+      }
+    },
+    {
+      "class_id": 0,
+      "class_name": "crack",
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 606,
+        "y1": 337,
+        "x2": 966,
+        "y2": 650
+      },
+      "bbox_yolo": {
+        "x_center": 0.49125,
+        "y_center": 0.548333,
+        "width": 0.225,
+        "height": 0.347778
+      }
+    },
+    {
+      "class_id": 1,
+      "class_name": "dent",
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 908,
+        "y1": 550,
+        "x2": 970,
+        "y2": 652
+      },
+      "bbox_yolo": {
+        "x_center": 0.586875,
+        "y_center": 0.667778,
+        "width": 0.03875,
+        "height": 0.113333
+      }
+    }
+  ],
+  "session_name": "session_20260527_161509"
+}

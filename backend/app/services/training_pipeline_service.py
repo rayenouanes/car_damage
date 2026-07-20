@@ -27,7 +27,7 @@ class TrainingPipelineService:
         self.vlm = vlm
         self.llm = llm
 
-    def run(self, job_id: str, force: bool = False) -> dict:
+    def run(self, job_id: str, force: bool = False, enable_sam2: bool = True) -> dict:
         job = self.database.get_job(job_id)
         if not job:
             raise KeyError(job_id)
@@ -46,11 +46,13 @@ class TrainingPipelineService:
                 for detection in prepass[image["id"]]:
                     prediction_id = self.database.add_prediction(image["id"], detection)
                     item = {"id": prediction_id, **detection}
-                    sam2_mask = self.sam2.propose(image, prediction_id, detection["bbox"])
-                    if sam2_mask is not None:
-                        self.database.save_sam2_mask(
-                            prediction_id, sam2_mask.model_dump(mode="json")
-                        )
+                    sam2_mask = None
+                    if enable_sam2:
+                        sam2_mask = self.sam2.propose(image, prediction_id, detection["bbox"])
+                        if sam2_mask is not None:
+                            self.database.save_sam2_mask(
+                                prediction_id, sam2_mask.model_dump(mode="json")
+                            )
                     vlm_analysis, rules_text = self.vlm.analyze(image, item, sam2_mask)
                     self.database.save_analysis(
                         "vlm_analyses", prediction_id, self.vlm.provider,

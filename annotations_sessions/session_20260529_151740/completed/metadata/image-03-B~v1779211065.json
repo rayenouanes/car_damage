@@ -1,0 +1,161 @@
+{
+  "filename": "image-03-B~v1779211065.jpg",
+  "annotation_timestamp": "2026-05-29T15:17:40.370600",
+  "annotation_source": "tab1",
+  "annotation_model_name": "Modèle Principal (best.pt)",
+  "annotation_model_path": "best.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "Bodypanel-Dent"
+    },
+    {
+      "id": 1,
+      "name": "Front-Windscreen-Damage"
+    },
+    {
+      "id": 2,
+      "name": "Headlight-Damage"
+    },
+    {
+      "id": 3,
+      "name": "Rear-windscreen-Damage"
+    },
+    {
+      "id": 4,
+      "name": "RunningBoard-Dent"
+    },
+    {
+      "id": 5,
+      "name": "Sidemirror-Damage"
+    },
+    {
+      "id": 6,
+      "name": "Signlight-Damage"
+    },
+    {
+      "id": 7,
+      "name": "Taillight-Damage"
+    },
+    {
+      "id": 8,
+      "name": "bonnet-dent"
+    },
+    {
+      "id": 9,
+      "name": "boot-dent"
+    },
+    {
+      "id": 10,
+      "name": "doorouter-dent"
+    },
+    {
+      "id": 11,
+      "name": "fender-dent"
+    },
+    {
+      "id": 12,
+      "name": "front-bumper-dent"
+    },
+    {
+      "id": 13,
+      "name": "pillar-dent"
+    },
+    {
+      "id": 14,
+      "name": "quaterpanel-dent"
+    },
+    {
+      "id": 15,
+      "name": "rear-bumper-dent"
+    },
+    {
+      "id": 16,
+      "name": "roof-dent"
+    }
+  ],
+  "annotation_boxes_count": 4,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": true,
+  "non_final_classes_present": [
+    "Bodypanel-Dent",
+    "Front-Windscreen-Damage",
+    "Headlight-Damage"
+  ],
+  "final_dataset_classes": {
+    "0": "scratch",
+    "1": "dent",
+    "2": "crack"
+  },
+  "boxes": [
+    {
+      "class_id": 0,
+      "class_name": "Bodypanel-Dent",
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 928,
+        "y1": 331,
+        "x2": 1155,
+        "y2": 474
+      },
+      "bbox_yolo": {
+        "x_center": 0.813672,
+        "y_center": 0.419271,
+        "width": 0.177344,
+        "height": 0.148958
+      }
+    },
+    {
+      "class_id": 1,
+      "class_name": "Front-Windscreen-Damage",
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 910,
+        "y1": 665,
+        "x2": 1050,
+        "y2": 801
+      },
+      "bbox_yolo": {
+        "x_center": 0.765625,
+        "y_center": 0.763542,
+        "width": 0.109375,
+        "height": 0.141667
+      }
+    },
+    {
+      "class_id": 2,
+      "class_name": "Headlight-Damage",
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 1000,
+        "y1": 571,
+        "x2": 1137,
+        "y2": 667
+      },
+      "bbox_yolo": {
+        "x_center": 0.834766,
+        "y_center": 0.644792,
+        "width": 0.107031,
+        "height": 0.1
+      }
+    },
+    {
+      "class_id": 2,
+      "class_name": "Headlight-Damage",
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 422,
+        "y1": 274,
+        "x2": 906,
+        "y2": 610
+      },
+      "bbox_yolo": {
+        "x_center": 0.51875,
+        "y_center": 0.460417,
+        "width": 0.378125,
+        "height": 0.35
+      }
+    }
+  ],
+  "session_name": "session_20260529_151740"
+}

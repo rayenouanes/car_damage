@@ -1,0 +1,337 @@
+{
+  "remap_date": "2026-06-16 11:58:28",
+  "canonical_model": "best_2.pt",
+  "canonical_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "source_clean_backup_labels_dir": "C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\b2bak_112430\\labels",
+  "current_state_backup_before_rerun": "C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\b2cur_115823\\labels_before_clean_rerun",
+  "source_labels_dir": "C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\Data7.off\\labels",
+  "metadata_files_available": 56,
+  "counts_before_from_clean_backup": {
+    "files": 416,
+    "annotations": 808,
+    "counts": {
+      "0": 312,
+      "1": 399,
+      "2": 58,
+      "4": 19,
+      "5": 1,
+      "6": 11,
+      "7": 8
+    },
+    "invalid": [
+      {
+        "file": "Severe-dents--58-_jpg.rf.4b09b5b2563c1e9eeb54b1ba5677f39b.txt",
+        "line_no": 2,
+        "line": "6 0.804087 0.521635 0.310096 0.605769"
+      },
+      {
+        "file": "Severe-dents--58-_jpg.rf.4b09b5b2563c1e9eeb54b1ba5677f39b.txt",
+        "line_no": 3,
+        "line": "6 0.115385 0.344952 0.197115 0.141827"
+      },
+      {
+        "file": "Severe-dents--58-_jpg.rf.4b09b5b2563c1e9eeb54b1ba5677f39b.txt",
+        "line_no": 4,
+        "line": "6 0.448317 0.140625 0.516827 0.271635"
+      },
+      {
+        "file": "Severe-scratch--13-_jpg.rf.9d733d0c557f3411f8ecc086867ed56b.txt",
+        "line_no": 2,
+        "line": "6 0.304087 0.125000 0.560096 0.250000"
+      },
+      {
+        "file": "Severe-scratch--4-_jpg.rf.6b09fc86181a97d5a007661bf427e7c3.txt",
+        "line_no": 1,
+        "line": "7 0.401442 0.276442 0.533654 0.524038"
+      },
+      {
+        "file": "Severe-scratch--4-_jpg.rf.6b09fc86181a97d5a007661bf427e7c3.txt",
+        "line_no": 2,
+        "line": "7 0.626202 0.776442 0.531250 0.437500"
+      },
+      {
+        "file": "Severe-scratch--62-_jpg.rf.5ad991dde386408a16d3c0262f912dd9.txt",
+        "line_no": 1,
+        "line": "7 0.715144 0.609375 0.560096 0.233173"
+      },
+      {
+        "file": "Severe-scratch--62-_jpg.rf.5ad991dde386408a16d3c0262f912dd9.txt",
+        "line_no": 2,
+        "line": "7 0.656250 0.308894 0.649038 0.305288"
+      },
+      {
+        "file": "Severe-scratch--63-_jpg.rf.7da2e077fe47838199cdace92f556f04.txt",
+        "line_no": 1,
+        "line": "7 0.552885 0.644231 0.769231 0.355769"
+      },
+      {
+        "file": "cracks-and-holes--62-_jpg.rf.5f32edf7e72240dcdb3f032273b232d3.txt",
+        "line_no": 2,
+        "line": "7 0.288462 0.611779 0.307692 0.156250"
+      },
+      {
+        "file": "cracks-and-holes--62-_jpg.rf.d57e3fe9cf0004f8f5e24c5bc0883c67.txt",
+        "line_no": 3,
+        "line": "7 0.548077 0.687500 0.235577 0.240385"
+      },
+      {
+        "file": "image-02-B~v1779284627.txt",
+        "line_no": 3,
+        "line": "6 0.439352 0.237500 0.117593 0.088889"
+      },
+      {
+        "file": "image-08-B~v1779271719.txt",
+        "line_no": 3,
+        "line": "6 0.710625 0.465833 0.176250 0.068333"
+      },
+      {
+        "file": "image-22-B~v1779265844.txt",
+        "line_no": 1,
+        "line": "6 0.156250 0.486458 0.043750 0.043750"
+      },
+      {
+        "file": "image-22-B~v1779265844.txt",
+        "line_no": 2,
+        "line": "6 0.432812 0.472917 0.059375 0.077083"
+      },
+      {
+        "file": "image-22-B~v1779265844.txt",
+        "line_no": 3,
+        "line": "6 0.743359 0.503646 0.042969 0.067708"
+      },
+      {
+        "file": "image-22-B~v1779265844.txt",
+        "line_no": 4,
+        "line": "6 0.272656 0.622917 0.064062 0.095833"
+      },
+      {
+        "file": "slightly-scratch--11-_jpg.rf.89d6b26ca8d9510051cee6ad92c4a453.txt",
+        "line_no": 4,
+        "line": "6 0.207933 0.551683 0.266827 0.435096"
+      },
+      {
+        "file": "slightly-scratch--144-_jpg.rf.de323b6cbf45e2f8fc12cb630565f684.txt",
+        "line_no": 1,
+        "line": "7 0.644231 0.632212 0.697115 0.682692"
+      }
+    ],
+    "empty_files": 10
+  },
+  "counts_after_verification": {
+    "files": 416,
+    "annotations": 802,
+    "counts": {
+      "0": 75,
+      "1": 412,
+      "2": 2,
+      "3": 2,
+      "4": 311
+    },
+    "invalid": [],
+    "empty_files": 11
+  },
+  "label_files_changed": 372,
+  "method_counts": {
+    "metadata_order": 98,
+    "legacy_id": 141,
+    "filename": 541,
+    "metadata_bbox": 22,
+    "ignored_legacy": 6
+  },
+  "dropped_annotations_count": 6,
+  "dropped_annotations": [
+    {
+      "file": "image-02-B~v1779284627.txt",
+      "old_id": 6,
+      "line": "6 0.439352 0.237500 0.117593 0.088889",
+      "reason": "legacy class ignored in previous harmonization"
+    },
+    {
+      "file": "image-08-B~v1779271719.txt",
+      "old_id": 6,
+      "line": "6 0.710625 0.465833 0.176250 0.068333",
+      "reason": "legacy class ignored in previous harmonization"
+    },
+    {
+      "file": "image-22-B~v1779265844.txt",
+      "old_id": 6,
+      "line": "6 0.156250 0.486458 0.043750 0.043750",
+      "reason": "legacy class ignored in previous harmonization"
+    },
+    {
+      "file": "image-22-B~v1779265844.txt",
+      "old_id": 6,
+      "line": "6 0.432812 0.472917 0.059375 0.077083",
+      "reason": "legacy class ignored in previous harmonization"
+    },
+    {
+      "file": "image-22-B~v1779265844.txt",
+      "old_id": 6,
+      "line": "6 0.743359 0.503646 0.042969 0.067708",
+      "reason": "legacy class ignored in previous harmonization"
+    },
+    {
+      "file": "image-22-B~v1779265844.txt",
+      "old_id": 6,
+      "line": "6 0.272656 0.622917 0.064062 0.095833",
+      "reason": "legacy class ignored in previous harmonization"
+    }
+  ],
+  "unresolved_count": 0,
+  "unresolved": [],
+  "examples": {
+    "metadata_order": [
+      "0003_jpg.rf.1586414181ffd1020fd48aebe773aa48.txt: 1->1",
+      "635490615641330572-dentedcar_jpg.rf.2d4da0c9ee2a9a2fa10ab95371b3a6e0.txt: 0->0",
+      "635490615641330572-dentedcar_jpg.rf.2d4da0c9ee2a9a2fa10ab95371b3a6e0.txt: 0->0",
+      "635490615641330572-dentedcar_jpg.rf.2d4da0c9ee2a9a2fa10ab95371b3a6e0.txt: 1->1",
+      "Severe-scratch--146-_jpg.rf.0ca88c9687ac0088035590eaa5f3e36f.txt: 4->4",
+      "Severe-scratch--83-_jpg.rf.3f57b794b55a92df150a9d85cd174d2f.txt: 4->4",
+      "Severe-scratch--83-_jpg.rf.3f57b794b55a92df150a9d85cd174d2f.txt: 1->1",
+      "Small-dents--11-_jpg.rf.b7fbbd3a1155c04d5a47b5df7325be6e.txt: 1->4",
+      "Small-dents--11-_jpg.rf.b7fbbd3a1155c04d5a47b5df7325be6e.txt: 1->4",
+      "Small-dents--11-_jpg.rf.b7fbbd3a1155c04d5a47b5df7325be6e.txt: 1->4",
+      "Small-dents--11-_jpg.rf.b7fbbd3a1155c04d5a47b5df7325be6e.txt: 1->4",
+      "Small-dents--11-_jpg.rf.b7fbbd3a1155c04d5a47b5df7325be6e.txt: 1->4"
+    ],
+    "legacy_id": [
+      "0003_jpg.rf.2a354011125c54d4da078305d33eaeb6.txt: 0->1",
+      "car10-2-_jpg.rf.1c18165a8b073b03744b806947ec9fff.txt: 0->1",
+      "car10-2-_jpg.rf.85fcaa63487819de09f1ff917db0940f.txt: 0->1",
+      "car10-3-_jpg.rf.a42f7926ce9ec755b6b9edc9388e69e9.txt: 1->4",
+      "car10-3-_jpg.rf.a42f7926ce9ec755b6b9edc9388e69e9.txt: 1->4",
+      "car10-5-_jpg.rf.0c9063aff293bd3534a94d0b20d7eee3.txt: 1->4",
+      "car10-5-_jpg.rf.0c9063aff293bd3534a94d0b20d7eee3.txt: 1->4",
+      "car10-5-_jpg.rf.0c9063aff293bd3534a94d0b20d7eee3.txt: 1->4",
+      "car10_jpg.rf.ac58b02113f83c2d54aca06e280ecf23.txt: 0->1",
+      "car10_jpg.rf.ac58b02113f83c2d54aca06e280ecf23.txt: 0->1",
+      "car10_jpg.rf.ac58b02113f83c2d54aca06e280ecf23.txt: 0->1",
+      "car13-1-_jpg.rf.e0f8aeefb45b22038a4b042230f5f227.txt: 1->4"
+    ],
+    "filename": [
+      "Medium-dents--1-_jpg.rf.ce7a7040584458f9c92c02f187494cfb.txt: 0->1",
+      "Medium-dents--1-_jpg.rf.ce7a7040584458f9c92c02f187494cfb.txt: 1->1",
+      "Medium-dents--1-_jpg.rf.eb31a714d14addbe37c8ef07ba217d0b.txt: 1->1",
+      "Medium-dents--1-_jpg.rf.eb31a714d14addbe37c8ef07ba217d0b.txt: 0->1",
+      "Medium-dents--1-_jpg.rf.f478697c7b28c75bb851f98594afea87.txt: 0->1",
+      "Medium-dents--1-_jpg.rf.f478697c7b28c75bb851f98594afea87.txt: 0->1",
+      "Medium-dents--1-_jpg.rf.f478697c7b28c75bb851f98594afea87.txt: 1->1",
+      "Medium-dents--10-_jpg.rf.3598a4701f62b2331598c091c1158430.txt: 0->1",
+      "Medium-dents--10-_jpg.rf.425145d5178ac02ec319df037f9e4c5e.txt: 0->1",
+      "Medium-dents--100-_jpg.rf.4696271b0e39dcbc83e827a67fa5cce2.txt: 0->1",
+      "Medium-dents--102-_jpg.rf.20ef9b0fb95935f12441ae104085aeff.txt: 2->1",
+      "Medium-dents--102-_jpg.rf.20ef9b0fb95935f12441ae104085aeff.txt: 1->1"
+    ],
+    "metadata_bbox": [
+      "Small-dents--110-_jpg.rf.6468916659f8e497837214dadc5b4ce8.txt: 0->1",
+      "Small-dents--133-_jpg.rf.d616767dc9d42af2ac396e0db0b95fc5.txt: 1->1",
+      "Small-dents--133-_jpg.rf.d616767dc9d42af2ac396e0db0b95fc5.txt: 1->4",
+      "Small-dents--147-_jpg.rf.2bc150e47dc0de7f925d1b2a7ead865f.txt: 1->1",
+      "Small-dents--147-_jpg.rf.2bc150e47dc0de7f925d1b2a7ead865f.txt: 0->1",
+      "Small-dents--147-_jpg.rf.2bc150e47dc0de7f925d1b2a7ead865f.txt: 1->4",
+      "Small-dents--147-_jpg.rf.2bc150e47dc0de7f925d1b2a7ead865f.txt: 1->4",
+      "Small-dents--147-_jpg.rf.2bc150e47dc0de7f925d1b2a7ead865f.txt: 1->4",
+      "Small-dents--147-_jpg.rf.2bc150e47dc0de7f925d1b2a7ead865f.txt: 1->1",
+      "Small-dents--147-_jpg.rf.2bc150e47dc0de7f925d1b2a7ead865f.txt: 1->4",
+      "Small-dents--23-_jpg.rf.53deb515404e369dbdda19183ea8bc16.txt: 0->1",
+      "Small-dents--4-_jpg.rf.1d8ae1e2275d9b917584ae7a32c25e9a.txt: 0->1"
+    ],
+    "ignored_legacy": [
+      "image-02-B~v1779284627.txt: 6->DROP",
+      "image-08-B~v1779271719.txt: 6->DROP",
+      "image-22-B~v1779265844.txt: 6->DROP",
+      "image-22-B~v1779265844.txt: 6->DROP",
+      "image-22-B~v1779265844.txt: 6->DROP",
+      "image-22-B~v1779265844.txt: 6->DROP"
+    ]
+  },
+  "changed_files_sample": [
+    "0003_jpg.rf.2a354011125c54d4da078305d33eaeb6.txt",
+    "Medium-dents--1-_jpg.rf.ce7a7040584458f9c92c02f187494cfb.txt",
+    "Medium-dents--1-_jpg.rf.eb31a714d14addbe37c8ef07ba217d0b.txt",
+    "Medium-dents--1-_jpg.rf.f478697c7b28c75bb851f98594afea87.txt",
+    "Medium-dents--10-_jpg.rf.3598a4701f62b2331598c091c1158430.txt",
+    "Medium-dents--10-_jpg.rf.425145d5178ac02ec319df037f9e4c5e.txt",
+    "Medium-dents--100-_jpg.rf.4696271b0e39dcbc83e827a67fa5cce2.txt",
+    "Medium-dents--102-_jpg.rf.20ef9b0fb95935f12441ae104085aeff.txt",
+    "Medium-dents--104-_jpg.rf.e88efd7e98d7657c1da648f2d8914ad7.txt",
+    "Medium-dents--106-_jpg.rf.eb9da7a5b62d21ce9c5e57980868ee12.txt",
+    "Medium-dents--107-_jpg.rf.02d189540490e7a0cd400ea7ebdac969.txt",
+    "Medium-dents--111-_jpg.rf.2fbe29fdbb93093392c47f14e9151957.txt",
+    "Medium-dents--112-_jpg.rf.26c78d699eff20affcea55ccd3a7f602.txt",
+    "Medium-dents--114-_jpg.rf.01eb73428cc8ea19c26d9c552b77fce1.txt",
+    "Medium-dents--120-_jpg.rf.9e14be3ca40d2c13509aca15ac8adec0.txt",
+    "Medium-dents--122-_jpg.rf.ff4fc8230f91193edc98d6aad43ecc13.txt",
+    "Medium-dents--123-_jpg.rf.4eba11d56ed226958a351716ec526f4a.txt",
+    "Medium-dents--124-_jpg.rf.036862652939f2b55d2555567f7e2ecd.txt",
+    "Medium-dents--126-_jpg.rf.b227aa2c0d75830fc3666081a624a398.txt",
+    "Medium-dents--127-_jpg.rf.301fa79f3822d1fe2a97920bd2d257c4.txt",
+    "Medium-dents--131-_jpg.rf.41cca4b0823e4f6f29b2690b2996b369.txt",
+    "Medium-dents--135-_jpg.rf.b4378095c94ef201b25a9be6ca8bb49b.txt",
+    "Medium-dents--136-_jpg.rf.37968f013888da68e0a79250cdad3017.txt",
+    "Medium-dents--139-_jpg.rf.d61ebcdbd6e0484a502828a2cd45b5c9.txt",
+    "Medium-dents--17-_jpg.rf.07f34290b83adae4ca23ef016e8ba399.txt",
+    "Medium-dents--18-_jpg.rf.5f1d513865cc4bb61e945bd10e9afdf9.txt",
+    "Medium-dents--2-_jpg.rf.0c4ac3167af64a50505dba342d6fd583.txt",
+    "Medium-dents--2-_jpg.rf.3a7f0b35294b358869182fbed45d7d4f.txt",
+    "Medium-dents--22-_jpg.rf.81ffe5ab68900d6f3f7bd7c71fdedb4a.txt",
+    "Medium-dents--22-_jpg.rf.e96489f0bc384b4019e039e6f22ac527.txt",
+    "Medium-dents--23-_jpg.rf.f80a2fe38c99a36491fe3dcbbc9e8aed.txt",
+    "Medium-dents--27-_jpg.rf.2b965ef3fc03ed70e0a17aa749734ff9.txt",
+    "Medium-dents--29-_jpg.rf.e2a7f1617936318aba9bd10a3bfdd9bd.txt",
+    "Medium-dents--3-_jpg.rf.4eaa9e881637de90718b2d6be98a1334.txt",
+    "Medium-dents--3-_jpg.rf.500e0d9e9a4f0bd5f7fc3b862cc91a97.txt",
+    "Medium-dents--3-_jpg.rf.80f5d9a29ae3a99de264e467dc9a5f30.txt",
+    "Medium-dents--35-_jpg.rf.e0bad3e0a6bd5860dc7672d1e2b28d9e.txt",
+    "Medium-dents--37-_jpg.rf.b445400bf85470371feec5457085002a.txt",
+    "Medium-dents--38-_jpg.rf.8d195982e3dd5da57e7c8a41d6f435f2.txt",
+    "Medium-dents--41-_jpg.rf.d4980cbd36f1d1404d540886ec238c45.txt",
+    "Medium-dents--45-_jpg.rf.b55be8bd92a59f7c48d82cb89696d84a.txt",
+    "Medium-dents--47-_jpg.rf.0650bcb5c5628622e55151f7dcd80dc7.txt",
+    "Medium-dents--5-_jpg.rf.fc83f042794e2146adc9bf2b5646680f.txt",
+    "Medium-dents--51-_jpg.rf.d8ba2e843a511bf0650aa9d623822d68.txt",
+    "Medium-dents--54-_jpg.rf.afff07ab9e13ace032eba2ff86121fe4.txt",
+    "Medium-dents--55-_jpg.rf.e4c2406ed934dbd6aec9787c27716ac0.txt",
+    "Medium-dents--57-_jpg.rf.a4cc148630321896344b0445d37e22f2.txt",
+    "Medium-dents--59-_jpg.rf.139343fb8183557822a85a3a2034b067.txt",
+    "Medium-dents--60-_jpg.rf.6c8ad5818665ce572298898471168256.txt",
+    "Medium-dents--60-_jpg.rf.f0731cc832aefe0f4fb654bf502eca5b.txt",
+    "Medium-dents--7-_jpg.rf.8e1611e4f612c265a587837ad2b308bf.txt",
+    "Medium-dents--7-_jpg.rf.938688303df2d6bd732c49410f018505.txt",
+    "Medium-dents--7-_jpg.rf.a2c7e0f76e8de207dc2e11f0d6db5c06.txt",
+    "Medium-dents--7-_jpg.rf.d13b8f200b10a4719d996e238503dc3c.txt",
+    "Medium-dents--87-_jpg.rf.3d59e0fbf23bef8451698826a6cdb4a2.txt",
+    "Medium-dents--9-_jpg.rf.f46c236793c6170aa1a8f89de049ba58.txt",
+    "Medium-dents--90-_jpg.rf.497dec4c35c8a318a6a1571bf6850e01.txt",
+    "Medium-dents--94-_jpg.rf.5e54c8ac3d1104d7f2fbf3064ce7c184.txt",
+    "Medium-dents--97-_jpg.rf.a8fe8b9e732fd6290de419a80fbba314.txt",
+    "Rayures-sur-la-carrosserie-1024x682-1.txt",
+    "Severe-dents--100-_jpg.rf.5feae1586561c52d55bad89b2ea3355c.txt",
+    "Severe-dents--108-_jpg.rf.644edeb6bcbd11e2a8f3a7e9702a0aa7.txt",
+    "Severe-dents--112-_jpg.rf.bf886c15e2e4d001635197a81754bba1.txt",
+    "Severe-dents--119-_jpg.rf.30105db4b8a12b3bdd94fd1ba6dc676c.txt",
+    "Severe-dents--121-_jpg.rf.25b543e0185b4c2629d203e1f27e1aa7.txt",
+    "Severe-dents--121-_jpg.rf.452e575ea96f2cb172a7b8d4999ecff4.txt",
+    "Severe-dents--121-_jpg.rf.d8ee0f1c1206a5d11cbab3a63864eb7b.txt",
+    "Severe-dents--123-_jpg.rf.c51210ad34d6a7497d8aa5ccf7c313a2.txt",
+    "Severe-dents--124-_jpg.rf.34b12fb188f2990c8d31d993f47a81b9.txt",
+    "Severe-dents--128-_jpg.rf.93b3e65d9412488b4e91ac963aeb12d2.txt",
+    "Severe-dents--131-_jpg.rf.477ade43ac62b915260d351e333adbeb.txt",
+    "Severe-dents--143-_jpg.rf.8b18d81eb3bb384ea9733bc66724644a.txt",
+    "Severe-dents--2-_jpg.rf.8086f25b616aad760fba878bfc37f302.txt",
+    "Severe-dents--21-_jpg.rf.8144a447bfd221b6a790aaba6cdd291f.txt",
+    "Severe-dents--24-_jpg.rf.fd21aad2d018d21687c1333967f5267c.txt",
+    "Severe-dents--3-_jpg.rf.3c858a1f70cb4154b8efe58cfe21a06a.txt",
+    "Severe-dents--30-_jpg.rf.9490309b870c0d928c5799278811552a.txt",
+    "Severe-dents--4-_jpg.rf.7cea1718b31528f3959ac470b6a3dda3.txt",
+    "Severe-dents--40-_jpg.rf.086f75d25796c0dba914fc157b129722.txt",
+    "Severe-dents--46-_jpg.rf.7489d7f8c9f22db1d7a16bfdc145518b.txt"
+  ]
+}

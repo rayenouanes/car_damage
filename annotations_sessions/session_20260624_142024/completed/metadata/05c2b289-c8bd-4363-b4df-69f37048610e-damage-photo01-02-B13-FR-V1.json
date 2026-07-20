@@ -1,0 +1,454 @@
+{
+  "filename": "05c2b289-c8bd-4363-b4df-69f37048610e-damage-photo01-02-B13-FR-V1.jpg",
+  "annotation_timestamp": "2026-06-24T16:18:49.976553",
+  "annotation_source": "tab1",
+  "annotation_model_name": "Référence unique (best_2.pt)",
+  "annotation_model_path": "best_2.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "crack",
+      "dataset_id": 0,
+      "dataset_name": "crack"
+    },
+    {
+      "id": 1,
+      "name": "dent",
+      "dataset_id": 1,
+      "dataset_name": "dent"
+    },
+    {
+      "id": 2,
+      "name": "glass shatter",
+      "dataset_id": 2,
+      "dataset_name": "glass shatter"
+    },
+    {
+      "id": 3,
+      "name": "lamp broken",
+      "dataset_id": 3,
+      "dataset_name": "lamp broken"
+    },
+    {
+      "id": 4,
+      "name": "scratch",
+      "dataset_id": 4,
+      "dataset_name": "scratch"
+    },
+    {
+      "id": 5,
+      "name": "tire flat",
+      "dataset_id": 5,
+      "dataset_name": "tire flat"
+    }
+  ],
+  "annotation_boxes_count": 2,
+  "annotation_masks_count": 1,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": false,
+  "non_final_classes_present": [],
+  "final_dataset_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "dataset_class_standard": "best_2 canonical: 0=crack, 1=dent, 2=glass shatter, 3=lamp broken, 4=scratch, 5=tire flat",
+  "boxes": [
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": 4,
+      "source_model_class_name": "scratch",
+      "confidence": 0.4695623219013214,
+      "bbox_pixels": {
+        "x1": 158,
+        "y1": 282,
+        "x2": 306,
+        "y2": 417
+      },
+      "bbox_yolo": {
+        "x_center": 0.490486,
+        "y_center": 0.415083,
+        "width": 0.312896,
+        "height": 0.160333
+      },
+      "mask_polygon_pixels": [
+        [
+          289,
+          274
+        ],
+        [
+          274,
+          274
+        ],
+        [
+          248,
+          269
+        ],
+        [
+          241,
+          273
+        ],
+        [
+          239,
+          277
+        ],
+        [
+          233,
+          279
+        ],
+        [
+          232,
+          277
+        ],
+        [
+          224,
+          277
+        ],
+        [
+          223,
+          280
+        ],
+        [
+          220,
+          278
+        ],
+        [
+          215,
+          284
+        ],
+        [
+          213,
+          281
+        ],
+        [
+          208,
+          281
+        ],
+        [
+          208,
+          284
+        ],
+        [
+          201,
+          288
+        ],
+        [
+          196,
+          284
+        ],
+        [
+          198,
+          281
+        ],
+        [
+          204,
+          281
+        ],
+        [
+          197,
+          280
+        ],
+        [
+          193,
+          281
+        ],
+        [
+          193,
+          286
+        ],
+        [
+          187,
+          282
+        ],
+        [
+          185,
+          286
+        ],
+        [
+          181,
+          286
+        ],
+        [
+          178,
+          290
+        ],
+        [
+          176,
+          287
+        ],
+        [
+          172,
+          289
+        ],
+        [
+          165,
+          287
+        ],
+        [
+          159,
+          299
+        ],
+        [
+          158,
+          297
+        ],
+        [
+          156,
+          305
+        ],
+        [
+          158,
+          312
+        ],
+        [
+          157,
+          325
+        ],
+        [
+          160,
+          323
+        ],
+        [
+          162,
+          326
+        ],
+        [
+          154,
+          330
+        ],
+        [
+          157,
+          335
+        ],
+        [
+          161,
+          335
+        ],
+        [
+          170,
+          341
+        ],
+        [
+          182,
+          343
+        ],
+        [
+          186,
+          347
+        ],
+        [
+          189,
+          345
+        ],
+        [
+          194,
+          348
+        ],
+        [
+          210,
+          349
+        ],
+        [
+          211,
+          354
+        ],
+        [
+          214,
+          354
+        ],
+        [
+          214,
+          361
+        ],
+        [
+          211,
+          361
+        ],
+        [
+          210,
+          369
+        ],
+        [
+          203,
+          383
+        ],
+        [
+          203,
+          389
+        ],
+        [
+          205,
+          391
+        ],
+        [
+          214,
+          391
+        ],
+        [
+          217,
+          393
+        ],
+        [
+          217,
+          396
+        ],
+        [
+          227,
+          396
+        ],
+        [
+          230,
+          399
+        ],
+        [
+          229,
+          404
+        ],
+        [
+          233,
+          409
+        ],
+        [
+          236,
+          409
+        ],
+        [
+          235,
+          404
+        ],
+        [
+          240,
+          405
+        ],
+        [
+          245,
+          399
+        ],
+        [
+          246,
+          402
+        ],
+        [
+          249,
+          401
+        ],
+        [
+          252,
+          404
+        ],
+        [
+          272,
+          403
+        ],
+        [
+          274,
+          405
+        ],
+        [
+          281,
+          405
+        ],
+        [
+          281,
+          399
+        ],
+        [
+          289,
+          387
+        ],
+        [
+          308,
+          338
+        ],
+        [
+          313,
+          330
+        ],
+        [
+          311,
+          315
+        ],
+        [
+          309,
+          330
+        ],
+        [
+          306,
+          325
+        ],
+        [
+          307,
+          301
+        ],
+        [
+          305,
+          297
+        ],
+        [
+          307,
+          293
+        ],
+        [
+          304,
+          290
+        ],
+        [
+          300,
+          292
+        ],
+        [
+          297,
+          290
+        ],
+        [
+          297,
+          285
+        ],
+        [
+          300,
+          280
+        ],
+        [
+          296,
+          280
+        ],
+        [
+          296,
+          285
+        ],
+        [
+          293,
+          286
+        ]
+      ],
+      "mask_confidence": 0.890824556350708,
+      "mask_path": "C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\Data7.off\\masks\\05c2b289-c8bd-4363-b4df-69f37048610e-damage-photo01-02-B13-FR-V1_000.png"
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 168,
+        "y1": 54,
+        "x2": 343,
+        "y2": 269
+      },
+      "bbox_yolo": {
+        "x_center": 0.540169,
+        "y_center": 0.191805,
+        "width": 0.369979,
+        "height": 0.255344
+      }
+    }
+  ],
+  "session_name": "session_20260624_142024"
+}

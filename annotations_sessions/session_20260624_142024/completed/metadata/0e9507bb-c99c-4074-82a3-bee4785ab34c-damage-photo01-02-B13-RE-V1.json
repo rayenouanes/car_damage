@@ -1,0 +1,218 @@
+{
+  "filename": "0e9507bb-c99c-4074-82a3-bee4785ab34c-damage-photo01-02-B13-RE-V1.jpg",
+  "annotation_timestamp": "2026-06-24T15:22:29.839263",
+  "annotation_source": "tab1",
+  "annotation_model_name": "Référence unique (best_2.pt)",
+  "annotation_model_path": "best_2.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "crack",
+      "dataset_id": 0,
+      "dataset_name": "crack"
+    },
+    {
+      "id": 1,
+      "name": "dent",
+      "dataset_id": 1,
+      "dataset_name": "dent"
+    },
+    {
+      "id": 2,
+      "name": "glass shatter",
+      "dataset_id": 2,
+      "dataset_name": "glass shatter"
+    },
+    {
+      "id": 3,
+      "name": "lamp broken",
+      "dataset_id": 3,
+      "dataset_name": "lamp broken"
+    },
+    {
+      "id": 4,
+      "name": "scratch",
+      "dataset_id": 4,
+      "dataset_name": "scratch"
+    },
+    {
+      "id": 5,
+      "name": "tire flat",
+      "dataset_id": 5,
+      "dataset_name": "tire flat"
+    }
+  ],
+  "annotation_boxes_count": 2,
+  "annotation_masks_count": 1,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": false,
+  "non_final_classes_present": [],
+  "final_dataset_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "dataset_class_standard": "best_2 canonical: 0=crack, 1=dent, 2=glass shatter, 3=lamp broken, 4=scratch, 5=tire flat",
+  "boxes": [
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": 3,
+      "source_model_class_name": "lamp broken",
+      "confidence": 0.6366560459136963,
+      "bbox_pixels": {
+        "x1": 73,
+        "y1": 0,
+        "x2": 211,
+        "y2": 69
+      },
+      "bbox_yolo": {
+        "x_center": 0.394444,
+        "y_center": 0.054675,
+        "width": 0.383333,
+        "height": 0.10935
+      },
+      "mask_polygon_pixels": [
+        [
+          78,
+          0
+        ],
+        [
+          77,
+          4
+        ],
+        [
+          77,
+          29
+        ],
+        [
+          76,
+          30
+        ],
+        [
+          77,
+          33
+        ],
+        [
+          75,
+          43
+        ],
+        [
+          76,
+          49
+        ],
+        [
+          75,
+          50
+        ],
+        [
+          75,
+          60
+        ],
+        [
+          72,
+          65
+        ],
+        [
+          73,
+          67
+        ],
+        [
+          81,
+          63
+        ],
+        [
+          86,
+          62
+        ],
+        [
+          108,
+          61
+        ],
+        [
+          109,
+          62
+        ],
+        [
+          158,
+          66
+        ],
+        [
+          161,
+          68
+        ],
+        [
+          164,
+          67
+        ],
+        [
+          171,
+          69
+        ],
+        [
+          190,
+          69
+        ],
+        [
+          197,
+          65
+        ],
+        [
+          201,
+          59
+        ],
+        [
+          204,
+          48
+        ],
+        [
+          204,
+          41
+        ],
+        [
+          206,
+          33
+        ],
+        [
+          206,
+          25
+        ],
+        [
+          209,
+          13
+        ],
+        [
+          210,
+          0
+        ]
+      ],
+      "mask_confidence": 0.967492401599884,
+      "mask_path": "C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\Data7.off\\masks\\0e9507bb-c99c-4074-82a3-bee4785ab34c-damage-photo01-02-B13-RE-V1_000.png"
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 79,
+        "y1": 326,
+        "x2": 215,
+        "y2": 601
+      },
+      "bbox_yolo": {
+        "x_center": 0.408333,
+        "y_center": 0.734548,
+        "width": 0.377778,
+        "height": 0.435816
+      }
+    }
+  ],
+  "session_name": "session_20260624_142024"
+}

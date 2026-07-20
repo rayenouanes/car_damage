@@ -1,0 +1,314 @@
+{
+  "filename": "05485abc-93d6-46fd-993e-45c27415b6b2-damage-photo01-01-B7-FR-V1.jpg",
+  "annotation_timestamp": "2026-06-24T18:30:59.604488",
+  "annotation_source": "tab1",
+  "annotation_model_name": "Référence unique (best_2.pt)",
+  "annotation_model_path": "best_2.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "crack",
+      "dataset_id": 0,
+      "dataset_name": "crack"
+    },
+    {
+      "id": 1,
+      "name": "dent",
+      "dataset_id": 1,
+      "dataset_name": "dent"
+    },
+    {
+      "id": 2,
+      "name": "glass shatter",
+      "dataset_id": 2,
+      "dataset_name": "glass shatter"
+    },
+    {
+      "id": 3,
+      "name": "lamp broken",
+      "dataset_id": 3,
+      "dataset_name": "lamp broken"
+    },
+    {
+      "id": 4,
+      "name": "scratch",
+      "dataset_id": 4,
+      "dataset_name": "scratch"
+    },
+    {
+      "id": 5,
+      "name": "tire flat",
+      "dataset_id": 5,
+      "dataset_name": "tire flat"
+    }
+  ],
+  "annotation_boxes_count": 3,
+  "annotation_masks_count": 1,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": false,
+  "non_final_classes_present": [],
+  "final_dataset_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "dataset_class_standard": "best_2 canonical: 0=crack, 1=dent, 2=glass shatter, 3=lamp broken, 4=scratch, 5=tire flat",
+  "boxes": [
+    {
+      "class_id": 5,
+      "class_name": "tire flat",
+      "class_display": "Pneu crevé (Tire flat)",
+      "source_model_class_id": 5,
+      "source_model_class_name": "tire flat",
+      "confidence": 0.9138520359992981,
+      "bbox_pixels": {
+        "x1": 212,
+        "y1": 250,
+        "x2": 461,
+        "y2": 569
+      },
+      "bbox_yolo": {
+        "x_center": 0.729935,
+        "y_center": 0.639844,
+        "width": 0.54013,
+        "height": 0.498437
+      },
+      "mask_polygon_pixels": [
+        [
+          459,
+          264
+        ],
+        [
+          434,
+          255
+        ],
+        [
+          413,
+          254
+        ],
+        [
+          411,
+          257
+        ],
+        [
+          409,
+          254
+        ],
+        [
+          358,
+          268
+        ],
+        [
+          353,
+          274
+        ],
+        [
+          350,
+          273
+        ],
+        [
+          325,
+          288
+        ],
+        [
+          322,
+          287
+        ],
+        [
+          290,
+          315
+        ],
+        [
+          291,
+          321
+        ],
+        [
+          285,
+          328
+        ],
+        [
+          283,
+          325
+        ],
+        [
+          282,
+          334
+        ],
+        [
+          276,
+          333
+        ],
+        [
+          275,
+          341
+        ],
+        [
+          269,
+          346
+        ],
+        [
+          272,
+          353
+        ],
+        [
+          269,
+          353
+        ],
+        [
+          267,
+          360
+        ],
+        [
+          265,
+          354
+        ],
+        [
+          260,
+          371
+        ],
+        [
+          222,
+          439
+        ],
+        [
+          218,
+          456
+        ],
+        [
+          215,
+          454
+        ],
+        [
+          209,
+          462
+        ],
+        [
+          211,
+          487
+        ],
+        [
+          215,
+          490
+        ],
+        [
+          220,
+          508
+        ],
+        [
+          227,
+          516
+        ],
+        [
+          237,
+          538
+        ],
+        [
+          260,
+          558
+        ],
+        [
+          284,
+          567
+        ],
+        [
+          300,
+          569
+        ],
+        [
+          325,
+          567
+        ],
+        [
+          353,
+          559
+        ],
+        [
+          393,
+          538
+        ],
+        [
+          412,
+          524
+        ],
+        [
+          456,
+          481
+        ],
+        [
+          460,
+          473
+        ],
+        [
+          460,
+          460
+        ],
+        [
+          454,
+          458
+        ],
+        [
+          460,
+          446
+        ],
+        [
+          460,
+          421
+        ],
+        [
+          456,
+          418
+        ],
+        [
+          460,
+          402
+        ]
+      ],
+      "mask_confidence": 0.9654840230941772,
+      "mask_path": "C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\Data7.off\\masks\\05485abc-93d6-46fd-993e-45c27415b6b2-damage-photo01-01-B7-FR-V1_000.png"
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 221,
+        "y1": 299,
+        "x2": 239,
+        "y2": 326
+      },
+      "bbox_yolo": {
+        "x_center": 0.498915,
+        "y_center": 0.488281,
+        "width": 0.039046,
+        "height": 0.042188
+      }
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 200,
+        "y1": 304,
+        "x2": 211,
+        "y2": 330
+      },
+      "bbox_yolo": {
+        "x_center": 0.44577,
+        "y_center": 0.495312,
+        "width": 0.023861,
+        "height": 0.040625
+      }
+    }
+  ],
+  "session_name": "session_20260624_142024"
+}

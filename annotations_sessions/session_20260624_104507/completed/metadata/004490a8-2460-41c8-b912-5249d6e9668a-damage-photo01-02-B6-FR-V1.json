@@ -1,0 +1,510 @@
+{
+  "filename": "004490a8-2460-41c8-b912-5249d6e9668a-damage-photo01-02-B6-FR-V1.jpg",
+  "annotation_timestamp": "2026-06-24T10:53:17.334428",
+  "annotation_source": "tab1",
+  "annotation_model_name": "Référence unique (best_2.pt)",
+  "annotation_model_path": "best_2.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "crack",
+      "dataset_id": 0,
+      "dataset_name": "crack"
+    },
+    {
+      "id": 1,
+      "name": "dent",
+      "dataset_id": 1,
+      "dataset_name": "dent"
+    },
+    {
+      "id": 2,
+      "name": "glass shatter",
+      "dataset_id": 2,
+      "dataset_name": "glass shatter"
+    },
+    {
+      "id": 3,
+      "name": "lamp broken",
+      "dataset_id": 3,
+      "dataset_name": "lamp broken"
+    },
+    {
+      "id": 4,
+      "name": "scratch",
+      "dataset_id": 4,
+      "dataset_name": "scratch"
+    },
+    {
+      "id": 5,
+      "name": "tire flat",
+      "dataset_id": 5,
+      "dataset_name": "tire flat"
+    }
+  ],
+  "annotation_boxes_count": 2,
+  "annotation_masks_count": 2,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": false,
+  "non_final_classes_present": [],
+  "final_dataset_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "dataset_class_standard": "best_2 canonical: 0=crack, 1=dent, 2=glass shatter, 3=lamp broken, 4=scratch, 5=tire flat",
+  "boxes": [
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 216,
+        "y1": 118,
+        "x2": 238,
+        "y2": 143
+      },
+      "bbox_yolo": {
+        "x_center": 0.381513,
+        "y_center": 0.448454,
+        "width": 0.036975,
+        "height": 0.085911
+      },
+      "mask_polygon_pixels": [
+        [
+          241,
+          141
+        ],
+        [
+          240,
+          141
+        ],
+        [
+          239,
+          140
+        ],
+        [
+          240,
+          139
+        ],
+        [
+          240,
+          138
+        ],
+        [
+          241,
+          137
+        ],
+        [
+          239,
+          135
+        ],
+        [
+          239,
+          134
+        ],
+        [
+          237,
+          132
+        ],
+        [
+          238,
+          131
+        ],
+        [
+          238,
+          127
+        ],
+        [
+          231,
+          127
+        ],
+        [
+          230,
+          128
+        ],
+        [
+          229,
+          128
+        ],
+        [
+          226,
+          131
+        ],
+        [
+          225,
+          131
+        ],
+        [
+          225,
+          132
+        ],
+        [
+          223,
+          134
+        ],
+        [
+          221,
+          134
+        ],
+        [
+          220,
+          135
+        ],
+        [
+          219,
+          135
+        ],
+        [
+          217,
+          137
+        ],
+        [
+          215,
+          137
+        ],
+        [
+          214,
+          138
+        ],
+        [
+          214,
+          139
+        ],
+        [
+          216,
+          141
+        ],
+        [
+          233,
+          141
+        ],
+        [
+          234,
+          142
+        ],
+        [
+          238,
+          142
+        ],
+        [
+          239,
+          141
+        ]
+      ],
+      "mask_confidence": 0.16020309925079346,
+      "mask_path": "C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\Data7.off\\masks\\004490a8-2460-41c8-b912-5249d6e9668a-damage-photo01-02-B6-FR-V1_000.png"
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 329,
+        "y1": 136,
+        "x2": 416,
+        "y2": 160
+      },
+      "bbox_yolo": {
+        "x_center": 0.62605,
+        "y_center": 0.508591,
+        "width": 0.146218,
+        "height": 0.082474
+      },
+      "mask_polygon_pixels": [
+        [
+          332,
+          148
+        ],
+        [
+          332,
+          149
+        ],
+        [
+          333,
+          150
+        ],
+        [
+          333,
+          152
+        ],
+        [
+          334,
+          152
+        ],
+        [
+          335,
+          151
+        ],
+        [
+          337,
+          153
+        ],
+        [
+          335,
+          155
+        ],
+        [
+          337,
+          155
+        ],
+        [
+          338,
+          156
+        ],
+        [
+          337,
+          157
+        ],
+        [
+          346,
+          157
+        ],
+        [
+          347,
+          158
+        ],
+        [
+          360,
+          158
+        ],
+        [
+          361,
+          159
+        ],
+        [
+          362,
+          158
+        ],
+        [
+          365,
+          158
+        ],
+        [
+          366,
+          159
+        ],
+        [
+          392,
+          159
+        ],
+        [
+          393,
+          160
+        ],
+        [
+          401,
+          160
+        ],
+        [
+          402,
+          161
+        ],
+        [
+          407,
+          161
+        ],
+        [
+          408,
+          160
+        ],
+        [
+          411,
+          160
+        ],
+        [
+          412,
+          159
+        ],
+        [
+          413,
+          159
+        ],
+        [
+          414,
+          160
+        ],
+        [
+          417,
+          157
+        ],
+        [
+          418,
+          157
+        ],
+        [
+          419,
+          156
+        ],
+        [
+          419,
+          154
+        ],
+        [
+          418,
+          154
+        ],
+        [
+          417,
+          155
+        ],
+        [
+          415,
+          153
+        ],
+        [
+          411,
+          153
+        ],
+        [
+          410,
+          152
+        ],
+        [
+          406,
+          152
+        ],
+        [
+          405,
+          151
+        ],
+        [
+          402,
+          151
+        ],
+        [
+          400,
+          149
+        ],
+        [
+          400,
+          147
+        ],
+        [
+          398,
+          144
+        ],
+        [
+          398,
+          141
+        ],
+        [
+          383,
+          141
+        ],
+        [
+          382,
+          140
+        ],
+        [
+          379,
+          139
+        ],
+        [
+          378,
+          138
+        ],
+        [
+          379,
+          137
+        ],
+        [
+          374,
+          137
+        ],
+        [
+          373,
+          136
+        ],
+        [
+          372,
+          136
+        ],
+        [
+          371,
+          137
+        ],
+        [
+          368,
+          137
+        ],
+        [
+          368,
+          138
+        ],
+        [
+          366,
+          140
+        ],
+        [
+          365,
+          139
+        ],
+        [
+          360,
+          139
+        ],
+        [
+          359,
+          140
+        ],
+        [
+          353,
+          140
+        ],
+        [
+          351,
+          137
+        ],
+        [
+          349,
+          137
+        ],
+        [
+          346,
+          139
+        ],
+        [
+          343,
+          139
+        ],
+        [
+          342,
+          140
+        ],
+        [
+          340,
+          140
+        ],
+        [
+          339,
+          141
+        ],
+        [
+          333,
+          141
+        ],
+        [
+          335,
+          143
+        ],
+        [
+          335,
+          144
+        ]
+      ],
+      "mask_confidence": 0.6870388388633728,
+      "mask_path": "C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\Data7.off\\masks\\004490a8-2460-41c8-b912-5249d6e9668a-damage-photo01-02-B6-FR-V1_001.png"
+    }
+  ],
+  "session_name": "session_20260624_104507"
+}

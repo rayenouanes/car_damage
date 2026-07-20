@@ -1,0 +1,23 @@
+{
+  "canonical_model": "best_2.pt",
+  "canonical_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "legacy_id_fallback_used_when_no_metadata_or_filename": {
+    "0": "dent -> best_2 id 1",
+    "1": "scratch -> best_2 id 4",
+    "2": "crack -> best_2 id 0",
+    "6": "ignored if no filename/metadata match",
+    "7": "ignored if no filename/metadata match"
+  },
+  "priority": [
+    "metadata bbox/order match",
+    "filename keywords",
+    "legacy id fallback"
+  ]
+}

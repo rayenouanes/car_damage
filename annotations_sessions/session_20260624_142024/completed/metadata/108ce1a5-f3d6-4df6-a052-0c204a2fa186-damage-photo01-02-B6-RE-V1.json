@@ -1,0 +1,162 @@
+{
+  "filename": "108ce1a5-f3d6-4df6-a052-0c204a2fa186-damage-photo01-02-B6-RE-V1.jpg",
+  "annotation_timestamp": "2026-06-24T18:07:26.130239",
+  "annotation_source": "tab1",
+  "annotation_model_name": "Référence unique (best_2.pt)",
+  "annotation_model_path": "best_2.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "crack",
+      "dataset_id": 0,
+      "dataset_name": "crack"
+    },
+    {
+      "id": 1,
+      "name": "dent",
+      "dataset_id": 1,
+      "dataset_name": "dent"
+    },
+    {
+      "id": 2,
+      "name": "glass shatter",
+      "dataset_id": 2,
+      "dataset_name": "glass shatter"
+    },
+    {
+      "id": 3,
+      "name": "lamp broken",
+      "dataset_id": 3,
+      "dataset_name": "lamp broken"
+    },
+    {
+      "id": 4,
+      "name": "scratch",
+      "dataset_id": 4,
+      "dataset_name": "scratch"
+    },
+    {
+      "id": 5,
+      "name": "tire flat",
+      "dataset_id": 5,
+      "dataset_name": "tire flat"
+    }
+  ],
+  "annotation_boxes_count": 1,
+  "annotation_masks_count": 1,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": false,
+  "non_final_classes_present": [],
+  "final_dataset_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "dataset_class_standard": "best_2 canonical: 0=crack, 1=dent, 2=glass shatter, 3=lamp broken, 4=scratch, 5=tire flat",
+  "boxes": [
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": 4,
+      "source_model_class_name": "scratch",
+      "confidence": 0.5141451954841614,
+      "bbox_pixels": {
+        "x1": 182,
+        "y1": 220,
+        "x2": 202,
+        "y2": 237
+      },
+      "bbox_yolo": {
+        "x_center": 0.573134,
+        "y_center": 0.357031,
+        "width": 0.059701,
+        "height": 0.026562
+      },
+      "mask_polygon_pixels": [
+        [
+          187,
+          224
+        ],
+        [
+          187,
+          229
+        ],
+        [
+          188,
+          230
+        ],
+        [
+          188,
+          231
+        ],
+        [
+          189,
+          232
+        ],
+        [
+          189,
+          233
+        ],
+        [
+          190,
+          233
+        ],
+        [
+          191,
+          234
+        ],
+        [
+          195,
+          234
+        ],
+        [
+          196,
+          233
+        ],
+        [
+          197,
+          233
+        ],
+        [
+          199,
+          231
+        ],
+        [
+          199,
+          225
+        ],
+        [
+          198,
+          225
+        ],
+        [
+          197,
+          224
+        ],
+        [
+          195,
+          224
+        ],
+        [
+          194,
+          223
+        ],
+        [
+          189,
+          223
+        ],
+        [
+          188,
+          224
+        ]
+      ],
+      "mask_confidence": 0.8745241761207581,
+      "mask_path": "C:\\Users\\p134929\\CascadeProjects\\CarDamageDetection\\Data7.off\\masks\\108ce1a5-f3d6-4df6-a052-0c204a2fa186-damage-photo01-02-B6-RE-V1_000.png"
+    }
+  ],
+  "session_name": "session_20260624_142024"
+}

@@ -1,0 +1,162 @@
+{
+  "filename": "051de80e-44cb-4ff2-be38-77eaf6b0b4e5-damage-photo01-03-B6-RE-V2.jpg",
+  "annotation_timestamp": "2026-06-24T17:23:25.414839",
+  "annotation_source": "tab1",
+  "annotation_model_name": "Référence unique (best_2.pt)",
+  "annotation_model_path": "best_2.pt",
+  "annotation_model_classes": [
+    {
+      "id": 0,
+      "name": "crack",
+      "dataset_id": 0,
+      "dataset_name": "crack"
+    },
+    {
+      "id": 1,
+      "name": "dent",
+      "dataset_id": 1,
+      "dataset_name": "dent"
+    },
+    {
+      "id": 2,
+      "name": "glass shatter",
+      "dataset_id": 2,
+      "dataset_name": "glass shatter"
+    },
+    {
+      "id": 3,
+      "name": "lamp broken",
+      "dataset_id": 3,
+      "dataset_name": "lamp broken"
+    },
+    {
+      "id": 4,
+      "name": "scratch",
+      "dataset_id": 4,
+      "dataset_name": "scratch"
+    },
+    {
+      "id": 5,
+      "name": "tire flat",
+      "dataset_id": 5,
+      "dataset_name": "tire flat"
+    }
+  ],
+  "annotation_boxes_count": 5,
+  "annotation_masks_count": 0,
+  "annotation_contains_manual_boxes": false,
+  "requires_final_harmonization": false,
+  "non_final_classes_present": [],
+  "final_dataset_classes": {
+    "0": "crack",
+    "1": "dent",
+    "2": "glass shatter",
+    "3": "lamp broken",
+    "4": "scratch",
+    "5": "tire flat"
+  },
+  "dataset_class_standard": "best_2 canonical: 0=crack, 1=dent, 2=glass shatter, 3=lamp broken, 4=scratch, 5=tire flat",
+  "boxes": [
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 246,
+        "y1": 162,
+        "x2": 478,
+        "y2": 236
+      },
+      "bbox_yolo": {
+        "x_center": 0.754167,
+        "y_center": 0.310937,
+        "width": 0.483333,
+        "height": 0.115625
+      }
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 263,
+        "y1": 101,
+        "x2": 478,
+        "y2": 131
+      },
+      "bbox_yolo": {
+        "x_center": 0.771875,
+        "y_center": 0.18125,
+        "width": 0.447917,
+        "height": 0.046875
+      }
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 28,
+        "y1": 160,
+        "x2": 148,
+        "y2": 180
+      },
+      "bbox_yolo": {
+        "x_center": 0.183333,
+        "y_center": 0.265625,
+        "width": 0.25,
+        "height": 0.03125
+      }
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 242,
+        "y1": 271,
+        "x2": 280,
+        "y2": 334
+      },
+      "bbox_yolo": {
+        "x_center": 0.54375,
+        "y_center": 0.472656,
+        "width": 0.079167,
+        "height": 0.098437
+      }
+    },
+    {
+      "class_id": 4,
+      "class_name": "scratch",
+      "class_display": "Rayure (Scratch)",
+      "source_model_class_id": null,
+      "source_model_class_name": null,
+      "confidence": 1.0,
+      "bbox_pixels": {
+        "x1": 218,
+        "y1": 353,
+        "x2": 265,
+        "y2": 424
+      },
+      "bbox_yolo": {
+        "x_center": 0.503125,
+        "y_center": 0.607031,
+        "width": 0.097917,
+        "height": 0.110937
+      }
+    }
+  ],
+  "session_name": "session_20260624_142024"
+}
