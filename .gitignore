@@ -10,26 +10,22 @@ env/
 .env.production
 !.env.example
 
-# Poids et artefacts ML lourds
-*.pt
-*.pth
-*.onnx
+# Poids et artefacts ML lourds (desormais versionnes via Git LFS, voir .gitattributes)
+# *.pt / *.pth / *.onnx / *.ckpt : suivis par LFS, ne pas ajouter ici
 *.engine
 *.weights
-*.ckpt
-runs/
-models_history/
-evaluation_runs/
 
 # Datasets, annotations et exports locaux
-Data7.off/
-dataset_annote/
-dataset_final_harmonise/
-brain_training_dataset/
-annotations_sessions/
-backups_original_annotations/
-b2bak_*/
-b2cur_*/
+# Les gros datasets et historiques seront versionnes via Git LFS (.gitattributes)
+# Ne pas laisser Data7.off, models_history, runs, annotations_sessions, etc. exclus ici
+# Data7.off/
+# dataset_annote/
+# dataset_final_harmonise/
+# brain_training_dataset/
+# annotations_sessions/
+# backups_original_annotations/
+# b2bak_*/
+# b2cur_*/
 
 # Bases, caches et logs runtime
 *.db
