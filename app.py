@@ -39,9 +39,16 @@ class LazyYOLO:
             try:
                 from ultralytics import YOLO as YOLOClass
                 _yolo = YOLOClass
+            except ImportError as exc:
+                raise RuntimeError(
+                    f"YOLO/ultralytics import failed: {exc}. "
+                    "Ensure ultralytics, opencv-python-headless (or opencv-python), and torch are installed. "
+                    "Try: pip install --upgrade ultralytics opencv-python-headless torch torchvision"
+                ) from exc
             except Exception as exc:
                 raise RuntimeError(
-                    "YOLO import failed. Ensure ultralytics and cv2 are properly installed."
+                    f"YOLO initialization error: {exc}. "
+                    "Check your Python version and dependency compatibility."
                 ) from exc
         return _yolo(*args, **kwargs)
 
