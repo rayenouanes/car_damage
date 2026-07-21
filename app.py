@@ -1388,9 +1388,9 @@ def analyze_video_with_bytetrack(
         )
 
         tracks: dict[str, dict] = {}
-        ignored_predictions = defaultdict(int)
         sampled_frames = 0
         fallback_track_id = 100000
+        sampled_frames_data: dict[int, dict] = {}
 
         def consume_stream(tracking_model, device):
             nonlocal sampled_frames, fallback_track_id
@@ -1419,9 +1419,42 @@ def analyze_video_with_bytetrack(
                     frame_index = min(
                         max(0, total_frames - 1), sample_index * effective_stride
                     ) if total_frames else sample_index * effective_stride
+                    ok, encoded_frame = cv2.imencode(
+                        ".jpg", frame_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 80]
+                    )
+                    if ok:
+                        sampled_frame = sampled_frames_data.setdefault(
+                            int(frame_index),
+                            {
+                                "frame_index": int(frame_index),
+                                "timestamp_seconds": frame_index / fps,
+                                "frame_jpeg": encoded_frame.tobytes(),
+                                "detections": [],
+                            },
+                        )
+                    else:
+                        sampled_frame = sampled_frames_data.setdefault(
+                            int(frame_index),
+                            {
+                                "frame_index": int(frame_index),
+                                "timestamp_seconds": frame_index / fps,
+                                "frame_jpeg": None,
+                                "detections": [],
+                            },
+                        )
                     if result.boxes is None:
                         continue
                     for detection_index, box in enumerate(result.boxes):
+                        if sampled_frame is None:
+                            sampled_frame = sampled_frames_data.setdefault(
+                                int(frame_index),
+                                {
+                                    "frame_index": int(frame_index),
+                                    "timestamp_seconds": frame_index / fps,
+                                    "frame_jpeg": None,
+                                    "detections": [],
+                                },
+                            )
                         model_class_id = int(box.cls[0].item())
                         class_id = model_to_dataset_id.get(model_class_id)
                         model_class_name = id_to_model_name.get(
@@ -1451,6 +1484,17 @@ def analyze_video_with_bytetrack(
                                 "observations": [],
                             },
                         )
+                        if sampled_frame is not None:
+                            sampled_frame["detections"].append(
+                                {
+                                    "track_id": track["track_id"],
+                                    "class_id": class_id,
+                                    "model_class_id": model_class_id,
+                                    "model_class_name": model_class_name,
+                                    "bbox": [float(value) for value in bbox],
+                                    "confidence": float(confidence_value),
+                                }
+                            )
                         track["frames_seen"] += 1
                         track["observations"].append(
                             {
@@ -1537,7 +1581,11 @@ def analyze_video_with_bytetrack(
                     sam2_errors.append(f"{track['track_id']}: {error}")
         sam2_elapsed = time.perf_counter() - sam2_started_at
         report_progress(100, "Analyse vidéo terminée")
+        sampled_frames_data_list = sorted(
+            sampled_frames_data.values(), key=lambda item: int(item.get("frame_index", 0))
+        )
         return {
+            "sampled_frames_data": sampled_frames_data_list,
             "video_name": original_name,
             "fps": fps,
             "total_frames": total_frames,
@@ -2305,6 +2353,75 @@ if selected_section == NAV_SECTIONS[0]:
                 with st.expander("Erreurs SAM2 sur certaines pistes"):
                     for error in video_analysis["sam2_errors"]:
                         st.write(error)
+
+            sampled_frames_data = video_analysis.get("sampled_frames_data", [])
+            if sampled_frames_data:
+                st.markdown("### 🎞️ Galerie des frames analysées")
+                st.caption(
+                    "Cliquez sur 'Corriger' pour charger la frame et éditer les boîtes manuellement. "
+                    "Cette galerie affiche les frames analysées, pas nécessairement toutes les frames brutes."
+                )
+                gallery_frames = sampled_frames_data
+                max_gallery_frames = 240
+                if len(gallery_frames) > max_gallery_frames:
+                    st.info(
+                        f"Affichage limité aux {max_gallery_frames} premières frames analysées sur {len(gallery_frames)}. "
+                        "Utilisez le curseur de navigation pour accéder aux autres frames."
+                    )
+                    gallery_frames = gallery_frames[:max_gallery_frames]
+
+                columns_per_row = 5
+                for start_idx in range(0, len(gallery_frames), columns_per_row):
+                    cols = st.columns(columns_per_row)
+                    for col, frame_info in zip(cols, gallery_frames[start_idx:start_idx + columns_per_row]):
+                        with col:
+                            if frame_info.get("frame_jpeg"):
+                                st.image(
+                                    frame_info["frame_jpeg"],
+                                    caption=(
+                                        f"Frame {frame_info['frame_index']} "
+                                        f"({frame_info['timestamp_seconds']:.1f}s)"
+                                    ),
+                                    use_column_width=True,
+                                )
+                            else:
+                                st.write(f"Frame {frame_info['frame_index']}")
+                            st.markdown(
+                                f"<small>{len(frame_info.get('detections', []))} détection(s)</small>",
+                                unsafe_allow_html=True,
+                            )
+                            if st.button(
+                                "Corriger",
+                                key=f"correct_frame_{frame_info['frame_index']}",
+                                use_container_width=True,
+                            ):
+                                st.session_state.video_manual_mode_active = True
+                                st.session_state.video_manual_frame_info = frame_info
+                                st.session_state.video_frame_browser_index = int(frame_info["frame_index"])
+                                st.session_state.video_editor_key = (
+                                    f"{st.session_state.video_upload_hash}:sampled:{frame_info['frame_index']}"
+                                )
+                                st.session_state.video_editor_boxes = [
+                                    {
+                                        "class_id": int(det["class_id"]),
+                                        "model_class_id": int(det.get("model_class_id", det["class_id"])),
+                                        "model_class_name": det.get(
+                                            "model_class_name",
+                                            get_dataset_class_name(int(det["class_id"])),
+                                        ),
+                                        "box": [int(value) for value in det["bbox"]],
+                                        "conf": float(det.get("confidence", 1.0)),
+                                        "track_id": det.get(
+                                            "track_id",
+                                            f"sampled-{frame_info['frame_index']}-{idx + 1}",
+                                        ),
+                                        "mask_polygon": det.get("mask_polygon"),
+                                        "mask_confidence": det.get("mask_confidence"),
+                                    }
+                                    for idx, det in enumerate(frame_info.get("detections", []))
+                                ]
+                                st.session_state.canvas_key += 1
+                                st.rerun()
 
             if tracks:
                 track_options = {
