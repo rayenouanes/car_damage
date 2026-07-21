@@ -20,7 +20,9 @@ RUN apt-get update \
 
 COPY requirements.txt /app/requirements.txt
 RUN python -m pip install --upgrade pip \
-    && python -m pip install -r /app/requirements.txt
+    && python -m pip install --no-cache-dir -r /app/requirements.txt \
+    && python -m pip uninstall -y opencv-python || true \
+    && python -m pip install --no-cache-dir opencv-python-headless>=4.8,<5.0
 
 COPY . /app
 
