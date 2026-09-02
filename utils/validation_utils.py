@@ -1,10 +1,9 @@
-"""Stockage des validations par bounding box (TP / FP / IGNORE).
+"""Stockage des validations humaines par bounding box (TP / FP / UNSURE).
 
-Chaque validation est une ligne JSONL dans ``reflection_validation_data.jsonl``
-(une ligne = une bounding box, jamais une decision globale par frame).
-``export_validation_dataset_csv`` prepare ensuite le dataset d'entrainement
-d'un futur modele de calibration des faux positifs lies aux reflets
-(LogisticRegression, petit XGBoost...).
+Chaque validation est une ligne JSONL (une ligne = une bounding box, jamais
+une décision globale par frame). Ces validations constituent la vérité
+terrain de l'Active Learning : elles servent aux statistiques TP/FP, au
+hard negative mining et au prochain entraînement.
 """
 
 from __future__ import annotations
@@ -13,18 +12,17 @@ import csv
 import json
 import os
 import time
-from typing import Optional, Sequence
+from typing import Sequence
 
-VALIDATION_JSONL_FILENAME = "reflection_validation_data.jsonl"
-VALIDATION_CSV_FILENAME = "reflection_validation_dataset.csv"
+VALIDATION_JSONL_FILENAME = "validation_data.jsonl"
+LEGACY_VALIDATION_JSONL_FILENAMES = ["reflection_validation_data.jsonl"]
+VALIDATION_CSV_FILENAME = "validation_dataset.csv"
 
 CSV_COLUMNS = [
     "image_id",
+    "detection_id",
     "class_name",
     "yolo_confidence",
-    "reflection_overlap",
-    "reflection_mean",
-    "reflection_max",
     "bbox_width",
     "bbox_height",
     "bbox_area_ratio",
@@ -32,7 +30,13 @@ CSV_COLUMNS = [
     "target",
 ]
 
-VALID_LABELS = {"TP", "FP", "IGNORE"}
+VALID_LABELS = {"TP", "FP", "UNSURE"}
+LEGACY_LABEL_MAP = {"IGNORE": "UNSURE"}
+
+
+def normalize_label(label: str) -> str:
+    value = str(label).upper()
+    return LEGACY_LABEL_MAP.get(value, value)
 
 
 def bbox_features(
@@ -40,7 +44,7 @@ def bbox_features(
     image_width: int,
     image_height: int,
 ) -> dict:
-    """Features geometriques d'une box pour le futur modele de calibration."""
+    """Features géométriques d'une box (utiles pour filtres et futurs modèles)."""
     x1, y1, x2, y2 = (float(value) for value in bbox)
     width = max(0.0, x2 - x1)
     height = max(0.0, y2 - y1)
@@ -57,33 +61,25 @@ def save_bbox_validation(
     jsonl_path: str,
     *,
     image_id: str,
+    detection_id: str,
     class_name: str,
     yolo_confidence: float,
     bbox: Sequence[float],
     image_width: int,
     image_height: int,
     validation: str,
-    method: str = "Original",
-    reflection_overlap: Optional[float] = None,
-    reflection_mean: Optional[float] = None,
-    reflection_max: Optional[float] = None,
-    reflection_risk: Optional[str] = None,
 ) -> dict:
     """Ajoute une validation de bounding box au fichier JSONL."""
-    label = str(validation).upper()
+    label = normalize_label(validation)
     if label not in VALID_LABELS:
-        raise ValueError(f"Validation invalide : {validation!r} (TP, FP ou IGNORE).")
+        raise ValueError(f"Validation invalide : {validation!r} (TP, FP ou UNSURE).")
 
     record = {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "image_id": image_id,
-        "method": method,
+        "detection_id": str(detection_id),
         "class_name": class_name,
         "yolo_confidence": float(yolo_confidence),
-        "reflection_overlap": None if reflection_overlap is None else float(reflection_overlap),
-        "reflection_mean": None if reflection_mean is None else float(reflection_mean),
-        "reflection_max": None if reflection_max is None else float(reflection_max),
-        "reflection_risk": reflection_risk,
         "validation": label,
         "bbox": [float(value) for value in bbox],
         "image_width": int(image_width),
@@ -99,12 +95,11 @@ def save_bbox_validation(
     return record
 
 
-def load_validations(jsonl_path: str) -> list:
-    """Charge toutes les validations enregistrees (liste de dicts)."""
-    if not os.path.exists(jsonl_path):
+def _load_jsonl(path: str) -> list:
+    if not os.path.exists(path):
         return []
     records = []
-    with open(jsonl_path, "r", encoding="utf-8") as handle:
+    with open(path, "r", encoding="utf-8") as handle:
         for line in handle:
             line = line.strip()
             if not line:
@@ -116,12 +111,24 @@ def load_validations(jsonl_path: str) -> list:
     return records
 
 
-def export_validation_dataset_csv(jsonl_path: str, csv_path: str) -> int:
-    """Exporte les validations TP/FP au format CSV d'entrainement.
+def load_validations(jsonl_path: str) -> list:
+    """Charge toutes les validations (nouveau fichier + anciens fichiers legacy)."""
+    records = []
+    directory = os.path.dirname(jsonl_path)
+    for legacy_name in LEGACY_VALIDATION_JSONL_FILENAMES:
+        legacy_path = os.path.join(directory, legacy_name) if directory else legacy_name
+        records.extend(_load_jsonl(legacy_path))
+    records.extend(_load_jsonl(jsonl_path))
+    for record in records:
+        record["validation"] = normalize_label(record.get("validation", ""))
+    return records
 
-    Target : 0 = True Positive, 1 = False Positive. Les lignes IGNORE et
-    celles sans metriques SpecSeg sont exclues. Retourne le nombre de
-    lignes exportees.
+
+def export_validation_dataset_csv(jsonl_path: str, csv_path: str) -> int:
+    """Exporte les validations TP/FP au format CSV.
+
+    Target : 0 = True Positive, 1 = False Positive. Les lignes UNSURE sont
+    exclues. Retourne le nombre de lignes exportées.
     """
     records = load_validations(jsonl_path)
     rows = []
@@ -129,15 +136,11 @@ def export_validation_dataset_csv(jsonl_path: str, csv_path: str) -> int:
         validation = record.get("validation")
         if validation not in {"TP", "FP"}:
             continue
-        if record.get("reflection_overlap") is None:
-            continue
         rows.append({
             "image_id": record.get("image_id", ""),
+            "detection_id": record.get("detection_id", ""),
             "class_name": record.get("class_name", ""),
             "yolo_confidence": record.get("yolo_confidence", 0.0),
-            "reflection_overlap": record.get("reflection_overlap", 0.0),
-            "reflection_mean": record.get("reflection_mean", 0.0),
-            "reflection_max": record.get("reflection_max", 0.0),
             "bbox_width": record.get("bbox_width", 0.0),
             "bbox_height": record.get("bbox_height", 0.0),
             "bbox_area_ratio": record.get("bbox_area_ratio", 0.0),
@@ -153,3 +156,17 @@ def export_validation_dataset_csv(jsonl_path: str, csv_path: str) -> int:
         writer.writeheader()
         writer.writerows(rows)
     return len(rows)
+
+
+def validation_summary(records: list) -> dict:
+    """Compte TP / FP / UNSURE et le nombre d'images distinctes validées."""
+    counts = {"TP": 0, "FP": 0, "UNSURE": 0}
+    images = set()
+    for record in records:
+        label = record.get("validation")
+        if label in counts:
+            counts[label] += 1
+        if record.get("image_id"):
+            images.add(record["image_id"])
+    counts["images"] = len(images)
+    return counts

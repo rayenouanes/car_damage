@@ -23,5 +23,3 @@ tqdm>=4.66,<5
 torch>=2.2.0,<3
 torchvision>=0.15.2,<1
 
-# SpecSeg (second expert anti-reflets) via Hugging Face Space
-gradio_client>=1.4,<3

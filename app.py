@@ -14,26 +14,13 @@ import streamlit as st
 import numpy as np
 from PIL import Image
 from dataset_split import prepare_train_val_test_split, summarize_dataset_split, sync_existing_split_item
-from utils.image_processing import apply_clahe
-from utils.method_comparison import (
-    METHOD_RESULTS_CSV_FILENAME,
-    METHOD_RESULTS_JSONL_FILENAME,
-    build_comparison_rows,
-    export_method_results_csv,
-    match_boxes,
-    save_method_results,
-)
-from utils.specseg_adapter import SpecSegAdapter, SpecSegError, image_sha256
-from utils.reflection_analysis import (
-    compute_reflection_metrics,
-    compute_reflection_risk,
-)
-from utils.reflection_validation import (
+from utils.validation_utils import (
     VALIDATION_CSV_FILENAME,
     VALIDATION_JSONL_FILENAME,
-    export_validation_dataset_csv,
     save_bbox_validation,
 )
+from ui.validation_page import render_validation_page
+from ui.active_learning_page import render_active_learning_page
 
 _cv2 = None
 _yolo = None
@@ -2046,127 +2033,9 @@ if st.session_state.get("last_cuda_fallback_error"):
     )
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("✨ Analyse anti-reflets (SpecSeg)")
-st.sidebar.caption(
-    "SpecSeg agit comme second expert : il identifie les reflets spéculaires "
-    "en parallèle de YOLO, sans jamais modifier l'image analysée par YOLO. "
-    "Activez-le via le « Mode d'analyse de l'image » dans la section d'annotation."
-)
-specseg_enabled = (
-    st.session_state.get("tab1_analysis_mode", "Original") == "SpecSeg"
-    or bool(st.session_state.get("tab1_compare_modes", False))
-)
-specseg_show_mask = st.sidebar.checkbox(
-    "Afficher le masque SpecSeg",
-    value=False,
-    key="specseg_show_mask",
-    disabled=not specseg_enabled,
-)
-specseg_mask_threshold = st.sidebar.slider(
-    "Seuil masque SpecSeg",
-    0.0,
-    1.0,
-    0.5,
-    0.05,
-    key="specseg_mask_threshold",
-    disabled=not specseg_enabled,
-)
-specseg_show_stats = st.sidebar.checkbox(
-    "Afficher les statistiques anti-reflets par détection",
-    value=True,
-    key="specseg_show_stats",
-    disabled=not specseg_enabled,
-)
+VALIDATION_JSONL_PATH = os.path.join(APP_BASE_DIR, VALIDATION_JSONL_FILENAME)
+VALIDATION_CSV_PATH = os.path.join(APP_BASE_DIR, VALIDATION_CSV_FILENAME)
 
-REFLECTION_VALIDATION_JSONL_PATH = os.path.join(APP_BASE_DIR, VALIDATION_JSONL_FILENAME)
-REFLECTION_VALIDATION_CSV_PATH = os.path.join(APP_BASE_DIR, VALIDATION_CSV_FILENAME)
-METHOD_RESULTS_JSONL_PATH = os.path.join(APP_BASE_DIR, METHOD_RESULTS_JSONL_FILENAME)
-METHOD_RESULTS_CSV_PATH = os.path.join(APP_BASE_DIR, METHOD_RESULTS_CSV_FILENAME)
-if st.sidebar.button(
-    "📄 Exporter le dataset de validation (CSV)",
-    key="specseg_export_csv",
-    use_container_width=True,
-):
-    try:
-        exported_rows = export_validation_dataset_csv(
-            REFLECTION_VALIDATION_JSONL_PATH, REFLECTION_VALIDATION_CSV_PATH
-        )
-        st.sidebar.success(
-            f"{exported_rows} ligne(s) exportée(s) vers `{VALIDATION_CSV_FILENAME}`."
-        )
-    except Exception as export_error:
-        st.sidebar.error(f"Export CSV impossible : {export_error}")
-
-
-@st.cache_resource
-def get_specseg_adapter() -> SpecSegAdapter:
-    return SpecSegAdapter()
-
-
-def get_specseg_mask_for_image(image_rgb):
-    """Masque SpecSeg de la frame, calculé une seule fois par image (hash SHA256).
-
-    Retourne (mask, error_message). Toute erreur SpecSeg est non bloquante :
-    YOLO continue normalement avec mask=None.
-    """
-    try:
-        image_hash = image_sha256(image_rgb)
-    except Exception as hash_error:
-        return None, f"Image invalide pour SpecSeg : {hash_error}"
-    cached = st.session_state.get("specseg_mask_cache") or {}
-    if cached.get("hash") == image_hash:
-        return cached.get("mask"), cached.get("error")
-    mask, error_message = None, None
-    try:
-        with st.spinner("✨ Analyse SpecSeg des reflets spéculaires..."):
-            mask = get_specseg_adapter().predict_mask(image_rgb)
-    except SpecSegError as specseg_error:
-        error_message = str(specseg_error)
-    except Exception as unexpected_error:
-        error_message = f"Erreur SpecSeg inattendue : {unexpected_error}"
-    st.session_state.specseg_mask_cache = {
-        "hash": image_hash,
-        "mask": mask,
-        "error": error_message,
-    }
-    return mask, error_message
-
-
-def annotate_boxes_with_reflection_metrics(boxes, reflection_mask, mask_threshold):
-    """Ajoute les métriques SpecSeg à chaque box sans toucher à la confiance YOLO."""
-    for item in boxes:
-        metrics = compute_reflection_metrics(
-            reflection_mask, item["box"], mask_threshold=mask_threshold
-        )
-        item["reflection_overlap"] = metrics["reflection_overlap"]
-        item["reflection_mean"] = metrics["reflection_mean"]
-        item["reflection_max"] = metrics["reflection_max"]
-        item["reflection_risk"] = compute_reflection_risk(metrics["reflection_overlap"])
-    return boxes
-
-
-def render_specseg_mask_view(image_rgb, reflection_mask, mask_threshold):
-    """Affiche IMAGE ORIGINALE | MASQUE SPECSEG + overlay semi-transparent.
-
-    Uniquement de la visualisation : l'image originale stockée n'est jamais modifiée.
-    """
-    mask_col1, mask_col2 = st.columns(2)
-    with mask_col1:
-        st.image(image_rgb, caption="Image originale", use_container_width=True)
-    with mask_col2:
-        mask_uint8 = (np.clip(reflection_mask, 0.0, 1.0) * 255).astype(np.uint8)
-        st.image(mask_uint8, caption="Masque SpecSeg", use_container_width=True)
-    if st.checkbox("Superposer le masque (overlay semi-transparent)", key="specseg_overlay_toggle"):
-        overlay = image_rgb.copy()
-        highlight = np.zeros_like(overlay)
-        highlight[..., 0] = 255  # rouge sur les zones de reflet
-        binary = (reflection_mask > float(mask_threshold))[..., None].astype(np.float32)
-        blended = overlay.astype(np.float32) * (1 - 0.45 * binary) + highlight.astype(np.float32) * (0.45 * binary)
-        st.image(
-            blended.astype(np.uint8),
-            caption=f"Original + masque SpecSeg (seuil {mask_threshold:.2f})",
-            use_container_width=True,
-        )
 
 def parse_yolo_boxes(results, model_to_dataset_id, id_to_model_name, ignored_predictions):
     """Convertit un résultat Ultralytics en liste de boxes internes."""
@@ -2193,8 +2062,6 @@ def parse_yolo_boxes(results, model_to_dataset_id, id_to_model_name, ignored_pre
 # Session State Initialization - ISOLATED FOR EACH TAB TO AVOID INTERFERENCE
 if "tab1_boxes" not in st.session_state:
     st.session_state.tab1_boxes = []
-if "tab1_clahe_boxes" not in st.session_state:
-    st.session_state.tab1_clahe_boxes = []
 if "tab1_current_file" not in st.session_state:
     st.session_state.tab1_current_file = None
 if "tab1_current_image_key" not in st.session_state:
@@ -2250,18 +2117,20 @@ def save_history(tab_name):
 # Navigation. Streamlit tabs execute every tab on each rerun, so this custom
 # selector keeps heavy sections lazy and prevents hidden model/dataset work.
 NAV_SECTIONS = [
-    "🚀 Scanner",
-    "📁 Dataset",
-    "🔄 Réentraîner",
-    "📊 Performances",
-    "🔍 Harmoniser",
+    "🔍 Analyse",
+    "✏️ Annotation",
+    "🚀 Entraînement",
+    "📊 Évaluation",
+    "✅ Validation",
+    "🧠 Active Learning",
 ]
 NAV_HELP = {
-    NAV_SECTIONS[0]: "Importer une photo ou un lot, lancer la détection, corriger les boîtes.",
-    NAV_SECTIONS[1]: "Voir et modifier les images déjà sauvegardées dans Data7.off.",
+    NAV_SECTIONS[0]: "Importer une photo ou un lot, lancer YOLO, valider chaque boîte (TP/FP/Unsure).",
+    NAV_SECTIONS[1]: "Voir et corriger les annotations déjà sauvegardées dans Data7.off.",
     NAV_SECTIONS[2]: "Relancer l'entraînement du modèle avec les annotations validées.",
     NAV_SECTIONS[3]: "Évaluer un modèle et comparer les versions disponibles.",
-    NAV_SECTIONS[4]: "Aligner les classes et générer le dataset final harmonisé.",
+    NAV_SECTIONS[4]: "Revoir et exporter les validations humaines par bounding box.",
+    NAV_SECTIONS[5]: "Statistiques TP/FP/Unsure, filtres et hard negative mining.",
 }
 
 if "main_navigation" not in st.session_state or st.session_state.main_navigation not in NAV_SECTIONS:
@@ -2281,23 +2150,21 @@ st.markdown("<div class='nav-kicker'>Parcours rapide</div>", unsafe_allow_html=T
 st.markdown("<div class='nav-title'>Choisissez la zone de travail</div>", unsafe_allow_html=True)
 st.markdown("<div class='nav-caption'>Chaque bouton ouvre une seule partie de l'application pour garder l'interface plus rapide.</div>", unsafe_allow_html=True)
 
-nav_top = st.columns([1, 1.1, 1])
-with nav_top[1]:
-    nav_button(NAV_SECTIONS[0], "🚀 Scanner", "nav_scanner")
+nav_row1 = st.columns(3)
+with nav_row1[0]:
+    nav_button(NAV_SECTIONS[0], "🔍 Analyse", "nav_analysis")
+with nav_row1[1]:
+    nav_button(NAV_SECTIONS[4], "✅ Validation", "nav_validation")
+with nav_row1[2]:
+    nav_button(NAV_SECTIONS[1], "✏️ Annotation", "nav_annotation")
 
-nav_mid = st.columns([1.15, 0.9, 1.15])
-with nav_mid[0]:
-    nav_button(NAV_SECTIONS[1], "📁 Dataset", "nav_dataset")
-with nav_mid[1]:
-    st.markdown("<div class='nav-core'>Flux<br>IA</div>", unsafe_allow_html=True)
-with nav_mid[2]:
-    nav_button(NAV_SECTIONS[3], "📊 Performances", "nav_performance")
-
-nav_bottom = st.columns([1.15, 0.25, 1.15])
-with nav_bottom[0]:
-    nav_button(NAV_SECTIONS[2], "🔄 Réentraîner", "nav_training")
-with nav_bottom[2]:
-    nav_button(NAV_SECTIONS[4], "🔍 Harmoniser", "nav_harmonize")
+nav_row2 = st.columns(3)
+with nav_row2[0]:
+    nav_button(NAV_SECTIONS[5], "🧠 Active Learning", "nav_active_learning")
+with nav_row2[1]:
+    nav_button(NAV_SECTIONS[2], "🚀 Entraînement", "nav_training")
+with nav_row2[2]:
+    nav_button(NAV_SECTIONS[3], "📊 Évaluation", "nav_performance")
 
 st.markdown("---")
 
@@ -2312,26 +2179,6 @@ if selected_section == NAV_SECTIONS[0]:
         key="annotation_work_mode"
     )
 
-    analysis_mode = st.radio(
-        "Mode d'analyse de l'image",
-        ["Original", "CLAHE", "SpecSeg"],
-        horizontal=True,
-        key="tab1_analysis_mode",
-        help=(
-            "Original : image RGB originale → YOLO (comportement actuel). "
-            "CLAHE : copie temporaire avec CLAHE sur la luminance → YOLO. "
-            "SpecSeg : YOLO sur l'image originale + masque de reflets analysé par bounding box "
-            "(l'image envoyée à YOLO n'est jamais modifiée)."
-        ),
-    )
-    compare_all_modes = st.checkbox(
-        "Comparer les 3 modes",
-        key="tab1_compare_modes",
-        help="Exécute Original, CLAHE et SpecSeg sur exactement la même image et compare les résultats.",
-    )
-    specseg_enabled = analysis_mode == "SpecSeg" or compare_all_modes
-
-    
     img_bgr = None
     filename = None
     orig_w, orig_h = 0, 0
@@ -2997,7 +2844,7 @@ if selected_section == NAV_SECTIONS[0]:
         force_analysis = st.session_state.get(force_flag_key, False)
         existing_annotations_available = os.path.exists(existing_label_path)
         image_content_hash = hashlib.sha256(img_bgr.tobytes()).hexdigest()[:16]
-        current_image_key = f"{work_mode}:{analysis_mode}:{'cmp' if compare_all_modes else 'std'}:{filename}:{image_content_hash}"
+        current_image_key = f"{work_mode}:{filename}:{image_content_hash}"
         new_tab1_file = st.session_state.get("tab1_current_image_key") != current_image_key
 
         if new_tab1_file:
@@ -3008,7 +2855,6 @@ if selected_section == NAV_SECTIONS[0]:
                 if work_mode == "🎥 Une vidéo"
                 else []
             )
-            st.session_state.tab1_clahe_boxes = []
             st.session_state.tab1_history = []  # Clear history on new image
             st.session_state.canvas_key += 1
             st.session_state.tab1_loaded_existing_annotations[filename] = False
@@ -3054,15 +2900,10 @@ if selected_section == NAV_SECTIONS[0]:
                 st.error("Aucun modèle YOLO n'est chargé. Vérifiez que `best_2.pt` est disponible.")
             else:
                 try:
-                    # L'image originale n'est jamais modifiée : CLAHE produit
-                    # uniquement une copie temporaire pour l'inférence.
-                    image_for_yolo = pil_img
-                    if analysis_mode == "CLAHE" and not compare_all_modes:
-                        image_for_yolo = Image.fromarray(apply_clahe(img_rgb))
                     with st.spinner("🚀 Analyse IA et détection automatique des dommages en cours..."):
                         results, used_device, cuda_fallback_error = run_inference_safely(
                             model,
-                            image_for_yolo,
+                            pil_img,
                             conf_threshold,
                             iou_threshold,
                             active_model_path,
@@ -3085,23 +2926,6 @@ if selected_section == NAV_SECTIONS[0]:
             st.session_state.tab1_boxes = parse_yolo_boxes(
                 results, model_to_dataset_id, id_to_model_name, ignored_predictions
             )
-            st.session_state.tab1_clahe_boxes = []
-            if compare_all_modes and model is not None and results is not None:
-                try:
-                    with st.spinner("🚀 Analyse CLAHE (copie temporaire) en cours..."):
-                        clahe_results, _, _ = run_inference_safely(
-                            model,
-                            Image.fromarray(apply_clahe(img_rgb)),
-                            conf_threshold,
-                            iou_threshold,
-                            active_model_path,
-                            prefer_gpu=prefer_gpu_inference,
-                        )
-                    st.session_state.tab1_clahe_boxes = parse_yolo_boxes(
-                        clahe_results, model_to_dataset_id, id_to_model_name, ignored_predictions
-                    )
-                except Exception as clahe_error:
-                    st.warning(f"Analyse CLAHE impossible : {clahe_error}")
             if ignored_predictions:
                 ignored_text = ", ".join([f"{name} ({count})" for name, count in ignored_predictions.items()])
                 st.warning(
@@ -3158,24 +2982,6 @@ if selected_section == NAV_SECTIONS[0]:
                     st.rerun()
             with action_col2:
                 st.caption("Annotations actuelles conservées.")
-
-        # --- Analyse SpecSeg (second expert, en parallèle de YOLO) ---
-        # L'image envoyée à YOLO n'est jamais modifiée : SpecSeg reçoit une
-        # copie de la même image RGB originale et produit uniquement un masque.
-        reflection_mask = None
-        specseg_error_message = None
-        if specseg_enabled:
-            reflection_mask, specseg_error_message = get_specseg_mask_for_image(img_rgb)
-            if specseg_error_message:
-                st.warning(
-                    "⚠️ SpecSeg indisponible — la détection YOLO continue normalement. "
-                    f"Détail : {specseg_error_message}"
-                )
-            annotate_boxes_with_reflection_metrics(
-                st.session_state.tab1_boxes,
-                reflection_mask,
-                specseg_mask_threshold,
-            )
 
         # Main Dashboard Metrics Header
         st.markdown("<div class='premium-card'>", unsafe_allow_html=True)
@@ -3291,115 +3097,6 @@ if selected_section == NAV_SECTIONS[0]:
                             st.success(f"BBox '{get_dataset_class_display(selected_class_id)}' ajoutée avec succès ! 🎉")
                             st.rerun()
 
-            if specseg_enabled and specseg_show_mask:
-                st.markdown("---")
-                st.markdown("### ✨ Masque SpecSeg")
-                if reflection_mask is not None:
-                    render_specseg_mask_view(img_rgb, reflection_mask, specseg_mask_threshold)
-                else:
-                    st.info("Masque SpecSeg indisponible pour cette image.")
-
-            if compare_all_modes:
-                st.markdown("---")
-                st.markdown("### 🆚 Comparaison des 3 modes (Original / CLAHE / SpecSeg)")
-                st.caption(
-                    "Les trois méthodes utilisent exactement la même image originale. "
-                    "Original et SpecSeg partagent les mêmes détections YOLO (YOLO n'est pas relancé) ; "
-                    "CLAHE relance YOLO sur une copie temporaire."
-                )
-                original_boxes = [
-                    {k: item[k] for k in ("class_id", "box", "conf")}
-                    for item in st.session_state.tab1_boxes
-                ]
-                clahe_boxes = st.session_state.get("tab1_clahe_boxes", [])
-                specseg_boxes = st.session_state.tab1_boxes
-
-                comp_col1, comp_col2, comp_col3 = st.columns(3)
-                with comp_col1:
-                    st.markdown(f"**ORIGINAL** — {len(original_boxes)} détection(s)")
-                    for idx, item in enumerate(original_boxes):
-                        st.caption(
-                            f"#{idx+1} {get_dataset_class_display(item['class_id'])} — "
-                            f"YOLO : {item['conf']:.2f}"
-                        )
-                with comp_col2:
-                    st.markdown(f"**CLAHE** — {len(clahe_boxes)} détection(s)")
-                    for idx, item in enumerate(clahe_boxes):
-                        st.caption(
-                            f"#{idx+1} {get_dataset_class_display(item['class_id'])} — "
-                            f"YOLO : {item['conf']:.2f}"
-                        )
-                with comp_col3:
-                    st.markdown(f"**SPECSEG** — {len(specseg_boxes)} détection(s) YOLO")
-                    for idx, item in enumerate(specseg_boxes):
-                        if item.get("reflection_overlap") is None:
-                            st.caption(
-                                f"#{idx+1} {get_dataset_class_display(item['class_id'])} — "
-                                f"YOLO : {item['conf']:.2f} | SpecSeg indisponible"
-                            )
-                        else:
-                            st.caption(
-                                f"#{idx+1} {get_dataset_class_display(item['class_id'])} — "
-                                f"YOLO : {item['conf']:.2f} | "
-                                f"overlap : {item['reflection_overlap']:.0%} | "
-                                f"mean : {item['reflection_mean']:.2f} | "
-                                f"risk : {item['reflection_risk']}"
-                            )
-
-                comparison_rows = build_comparison_rows(
-                    {
-                        "Original": original_boxes,
-                        "CLAHE": clahe_boxes,
-                        "SpecSeg": specseg_boxes,
-                    },
-                    get_dataset_class_display,
-                )
-                if comparison_rows:
-                    st.markdown("#### 📊 Table de comparaison")
-                    st.dataframe(comparison_rows, use_container_width=True)
-
-                matched_pairs = match_boxes(original_boxes, clahe_boxes)
-                if matched_pairs:
-                    st.markdown("#### 🔗 Associations Original ↔ CLAHE (même classe, IoU > 0.5)")
-                    for ia, ib, iou in matched_pairs:
-                        st.caption(
-                            f"Original #{ia+1} ↔ CLAHE #{ib+1} — "
-                            f"{get_dataset_class_display(original_boxes[ia]['class_id'])} | "
-                            f"IoU : {iou:.2f} | "
-                            f"conf : {original_boxes[ia]['conf']:.2f} → {clahe_boxes[ib]['conf']:.2f}"
-                        )
-                elif original_boxes and clahe_boxes:
-                    st.caption("Aucune association Original/CLAHE (classe identique + IoU > 0.5).")
-
-                if st.button(
-                    "💾 Exporter les résultats des 3 modes (JSONL + CSV)",
-                    key="export_method_comparison",
-                    use_container_width=True,
-                ):
-                    try:
-                        total_saved = 0
-                        for method_name, method_items in (
-                            ("Original", original_boxes),
-                            ("CLAHE", clahe_boxes),
-                            ("SpecSeg", specseg_boxes),
-                        ):
-                            total_saved += save_method_results(
-                                METHOD_RESULTS_JSONL_PATH,
-                                image_id=filename,
-                                method=method_name,
-                                boxes=method_items,
-                                class_name_getter=get_dataset_class_name,
-                            )
-                        exported = export_method_results_csv(
-                            METHOD_RESULTS_JSONL_PATH, METHOD_RESULTS_CSV_PATH
-                        )
-                        st.success(
-                            f"{total_saved} ligne(s) ajoutée(s) — {exported} ligne(s) au total "
-                            f"dans `{METHOD_RESULTS_CSV_FILENAME}`."
-                        )
-                    except Exception as export_error:
-                        st.error(f"Export impossible : {export_error}")
-
         with col_panel:
             st.subheader("📋 Boîtes à vérifier")
             
@@ -3415,24 +3112,6 @@ if selected_section == NAV_SECTIONS[0]:
                     display_label = get_dataset_class_display(cid)
                     c_hex = get_dataset_class_color(cid)
                     
-                    specseg_stats_html = ""
-                    if (
-                        specseg_enabled
-                        and specseg_show_stats
-                        and item.get("reflection_overlap") is not None
-                    ):
-                        risk = item.get("reflection_risk", "LOW")
-                        risk_color = {"LOW": "#63D0A8", "MEDIUM": "#FBBF24", "HIGH": "#F97066"}.get(risk, "#94A3B8")
-                        specseg_stats_html = (
-                            "<div style='color: #CBD5E1; font-size: 0.85rem; margin-top: 5px;'>"
-                            f"YOLO : {cf:.2f} | "
-                            f"Reflection overlap : {item['reflection_overlap']:.0%} | "
-                            f"Reflection mean : {item['reflection_mean']:.2f} | "
-                            f"Reflection max : {item['reflection_max']:.2f} | "
-                            f"Reflection risk : <span style='color:{risk_color}; font-weight:700;'>{risk}</span>"
-                            "</div>"
-                        )
-
                     # Render box information card
                     st.markdown(f"""
                     <div class='box-card' style='border-left: 5px solid {c_hex};'>
@@ -3445,7 +3124,6 @@ if selected_section == NAV_SECTIONS[0]:
                         <div style='color: #94A3B8; font-size: 0.85rem; margin-top: 5px;'>
                             Position : [X: {bx1} ➜ {bx2}] | [Y: {by1} ➜ {by2}]
                         </div>
-                        {specseg_stats_html}
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -3463,24 +3141,20 @@ if selected_section == NAV_SECTIONS[0]:
                         if st.button("❌ FP", key=f"val_fp_{idx}", use_container_width=True):
                             validation_choice = "FP"
                     with v_col3:
-                        if st.button("❔ Ignore", key=f"val_ignore_{idx}", use_container_width=True):
-                            validation_choice = "IGNORE"
+                        if st.button("❔ Unsure", key=f"val_ignore_{idx}", use_container_width=True):
+                            validation_choice = "UNSURE"
                     if validation_choice:
                         try:
                             save_bbox_validation(
-                                REFLECTION_VALIDATION_JSONL_PATH,
+                                VALIDATION_JSONL_PATH,
                                 image_id=filename,
+                                detection_id=f"{current_image_key}#{idx}",
                                 class_name=get_dataset_class_name(cid),
                                 yolo_confidence=float(cf),
                                 bbox=[bx1, by1, bx2, by2],
                                 image_width=orig_w,
                                 image_height=orig_h,
                                 validation=validation_choice,
-                                method="SpecSeg" if compare_all_modes else analysis_mode,
-                                reflection_overlap=item.get("reflection_overlap"),
-                                reflection_mean=item.get("reflection_mean"),
-                                reflection_max=item.get("reflection_max"),
-                                reflection_risk=item.get("reflection_risk"),
                             )
                             st.session_state[val_key] = validation_choice
                             st.toast(f"Box #{idx+1} validée : {validation_choice}")
@@ -4134,7 +3808,7 @@ if selected_section == NAV_SECTIONS[2]:
             st.error(
                 "Des anciennes classes non standard sont présentes : "
                 + ", ".join([f"#{cid}" for cid in invalid_training_ids])
-                + ". Corrigez ou harmonisez `Data7.off` avant d'entraîner."
+                + ". Corrigez `Data7.off` avant d'entraîner."
             )
         else:
             st.success(f"Le prochain entraînement utilisera les **{img_count} images** disponibles.")
@@ -4250,7 +3924,7 @@ if selected_section == NAV_SECTIONS[2]:
         st.error(
             "❌ Réentraînement bloqué : `Data7.off` contient des classes non standard "
             + ", ".join([f"#{cid}" for cid in invalid_training_ids])
-            + ". Utilisez l'onglet Dataset pour corriger ces boîtes ou l'onglet Harmoniser pour générer un dataset propre."
+            + ". Utilisez la page ✏️ Annotation pour corriger ces boîtes."
         )
         st.button("🔥 Lancer le réentraînement de l'IA", disabled=True, use_container_width=True)
     else:
@@ -5563,504 +5237,10 @@ if selected_section == NAV_SECTIONS[3]:
                 with deploy_col2:
                     st.write("Ce bouton copie le modèle choisi pour remplacer `best_2.pt`. Une sauvegarde de l'ancien `best_2.pt` est créée automatiquement.")
 
-# --- TAB 5: CLASS HARMONIZATION STUDIO ---
+# --- PAGE VALIDATION ---
 if selected_section == NAV_SECTIONS[4]:
-    st.markdown("<h2 style='color:#38BDF8;'>🔍 Harmoniser les classes</h2>", unsafe_allow_html=True)
-    st.markdown("""
-        Alignez les identifiants de classes entre vos annotations, votre modèle et les datasets externes.
-        Le format cible suit `best_2.pt` : `crack`, `dent`, `glass shatter`, `lamp broken`, `scratch`, `tire flat`.
-    """)
-    
-    import yaml
-    import json
-    import os
-    import shutil
-    import time
-    from datetime import datetime
-    import pandas as pd
-    
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    final_yaml_path = os.path.join(base_dir, "final_classes.yaml")
-    
-    # 1. Load Cible Classes (final_classes.yaml)
-    final_classes = dict(FINAL_DATASET_CLASSES)
-    if os.path.exists(final_yaml_path):
-        try:
-            with open(final_yaml_path, "r", encoding="utf-8") as f_y:
-                y_data = yaml.safe_load(f_y)
-                if y_data and "names" in y_data:
-                    final_classes = {int(k): v for k, v in y_data["names"].items()}
-        except Exception:
-            pass
-            
-    # Display reference classes
-    st.markdown("<div class='premium-card'>", unsafe_allow_html=True)
-    st.subheader("🎯 Classes finales")
-    st.write("Ces classes servent de référence pour le dataset final.")
-    
-    ref_col1, ref_col2, ref_col3 = st.columns(3)
-    for cid, cname in final_classes.items():
-        with [ref_col1, ref_col2, ref_col3][cid % 3]:
-            st.markdown(f"""
-                <div style='background-color: #1E293B; border-left: 5px solid {['#5B9CF6', '#F97066', '#63D0A8'][cid % 3]}; padding: 10px 15px; border-radius: 4px; margin-bottom: 8px;'>
-                    <strong style='font-size: 1.1rem; color: #FFF;'>ID {cid} : {cname}</strong>
-                    <div style='color: #94A3B8; font-size: 0.8rem;'>Label standard final</div>
-                </div>
-            """, unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    render_validation_page(VALIDATION_JSONL_PATH, VALIDATION_CSV_PATH)
 
-    # 2. Analyze sources
-    st.markdown("### 🔬 Sources détectées")
-    
-    # A. Active model classes. Reuse the already loaded model metadata instead of
-    # loading best_2.pt again on every harmonization render.
-    model_classes = {
-        int(k): str(v)
-        for k, v in st.session_state.get("active_model_classes", {}).get("id_to_name", {}).items()
-    }
-            
-    # B. Site classes (the dropdown list defined in app.py)
-    site_classes = {i: name for i, name in enumerate(class_names)}
-    
-    # C. Existing labels occurrences count
-    labels_dir = os.path.join(base_dir, "Data7.off", "labels")
-    lbl_counts = {}
-    if os.path.exists(labels_dir):
-        try:
-            for f in os.listdir(labels_dir):
-                if f.endswith('.txt'):
-                    with open(os.path.join(labels_dir, f), "r") as lf:
-                        for line in lf:
-                            parts = line.strip().split()
-                            if parts:
-                                cid = int(parts[0])
-                                lbl_counts[cid] = lbl_counts.get(cid, 0) + 1
-        except Exception:
-            pass
-            
-    # D. External dataset path
-    default_ext_path = r"C:\Users\p134929\Downloads\job_3629957_annotations_2026_02_16_15_10_12_ultralytics yolo detection 1.0"
-    ext_path = st.text_input("📁 Chemin du dataset YOLO externe à analyser :", value=default_ext_path)
-    
-    ext_classes = {}
-    if os.path.exists(ext_path):
-        ext_yaml = os.path.join(ext_path, "data.yaml")
-        if os.path.exists(ext_yaml):
-            try:
-                with open(ext_yaml, "r") as ef:
-                    ey = yaml.safe_load(ef)
-                    if ey and "names" in ey:
-                        ext_classes = {int(k): v for k, v in ey["names"].items()}
-            except Exception:
-                pass
-                
-    # E. Build comparative dataframe
-    st.markdown("#### ⚖️ Correspondances proposées")
-    
-    comparison_data = []
-    
-    # Model rows
-    for cid, name in model_classes.items():
-        # Match with final target
-        matched_id = "Incompatible"
-        matched_name = "-"
-        status = "🔴 Incompatible"
-        for fid, fname in final_classes.items():
-            if fname.lower() == name.lower():
-                matched_id = str(fid)
-                matched_name = fname
-                status = "🟢 Traduction possible"
-                if fid == cid:
-                    status = "🟢 Compatible"
-                break
-                
-        comparison_data.append({
-            "Source": "Modèle Actuel",
-            "ID Source": cid,
-            "Nom Source": name,
-            "ID Final Proposé": matched_id,
-            "Classe Finale": matched_name,
-            "Statut": status
-        })
-        
-    # Site rows
-    for cid, name in site_classes.items():
-        matched_id = "Ignorer / Manuel"
-        matched_name = "-"
-        status = "🟡 À ignorer"
-        occ = lbl_counts.get(cid, 0)
-        
-        for fid, fname in final_classes.items():
-            if fname.lower() == name.lower():
-                matched_id = str(fid)
-                matched_name = fname
-                status = "🔴 À remapper"
-                if fid == cid:
-                    status = "🟢 Compatible"
-                break
-                
-        if matched_id == "Ignorer / Manuel" and occ > 0:
-            status = "⚠️ Ambigu (Annotations présentes !)"
-            
-        comparison_data.append({
-            "Source": f"Site ({occ} annots)",
-            "ID Source": cid,
-            "Nom Source": name,
-            "ID Final Proposé": matched_id,
-            "Classe Finale": matched_name,
-            "Statut": status
-        })
-        
-    # External dataset rows
-    for cid, name in ext_classes.items():
-        matched_id = "Ignorer / Manuel"
-        matched_name = "-"
-        status = "🟡 À ignorer"
-        
-        for fid, fname in final_classes.items():
-            if fname.lower() == name.lower():
-                matched_id = str(fid)
-                matched_name = fname
-                status = "🟢 Traduction possible"
-                if fid == cid:
-                    status = "🟢 Compatible"
-                break
-                
-        comparison_data.append({
-            "Source": "Dataset Externe",
-            "ID Source": cid,
-            "Nom Source": name,
-            "ID Final Proposé": matched_id,
-            "Classe Finale": matched_name,
-            "Statut": status
-        })
-        
-    if comparison_data:
-        df_comp = pd.DataFrame(comparison_data)
-        st.dataframe(df_comp, use_container_width=True, hide_index=True)
-    else:
-        st.info("Aucune source détectée à analyser.")
-
-    # 3. Validation forms for mapping overrides
-    st.markdown("---")
-    st.markdown("### 🛠️ Mapping final")
-    st.write("Choisissez la destination de chaque classe source. Les classes à vérifier seront isolées dans un dossier séparé.")
-    
-    col_f1, col_f2 = st.columns(2)
-    
-    final_options = list(final_classes.values()) + ["Ignorer cette classe", "À vérifier manuellement"]
-    
-    site_mapping = {}
-    ext_mapping = {}
-    
-    with col_f1:
-        st.markdown("**Mapping de l'interface / annotations du Site :**")
-        for cid, name in site_classes.items():
-            occ = lbl_counts.get(cid, 0)
-            if occ == 0 and cid not in final_classes:
-                # default ignore for unused non-core classes
-                def_idx = final_options.index("Ignorer cette classe")
-            elif name in final_classes.values():
-                def_idx = final_options.index(name)
-            else:
-                def_idx = final_options.index("À vérifier manuellement")
-                
-            sel_opt = st.selectbox(
-                f"Classe du Site #{cid} : `{name}` ({occ} annots)",
-                final_options,
-                index=def_idx,
-                key=f"site_map_sel_{cid}"
-            )
-            site_mapping[cid] = sel_opt
-            
-    with col_f2:
-        st.markdown("**Mapping du Dataset Externe (YOLO à importer) :**")
-        if ext_classes:
-            for cid, name in ext_classes.items():
-                if name in final_classes.values():
-                    def_idx = final_options.index(name)
-                else:
-                    def_idx = final_options.index("Ignorer cette classe")
-                    
-                sel_opt = st.selectbox(
-                    f"Dataset Externe #{cid} : `{name}`",
-                    final_options,
-                    index=def_idx,
-                    key=f"ext_map_sel_{cid}"
-                )
-                ext_mapping[cid] = sel_opt
-        else:
-            st.warning("Aucun dataset externe valide n'est actuellement détecté. Renseignez un chemin contenant un `data.yaml` ci-dessus.")
-
-    # 4. Conversion execution panel
-    st.markdown("---")
-    st.markdown("### 📦 Générer le dataset harmonisé")
-    st.write("Crée une sauvegarde, convertit les labels, puis écrit le résultat dans `dataset_final_harmonise`.")
-    
-    # Warnings checking
-    has_ambiguous_site_classes = any([v == "À vérifier manuellement" for k, v in site_mapping.items() if lbl_counts.get(k, 0) > 0])
-    
-    if has_ambiguous_site_classes:
-        st.info("💡 **Remarque :** Certaines annotations présentes dans vos fichiers seront routées vers le sous-dossier `a_verifier_manuellement/` car elles possèdent des classes ambiguës.")
-        
-    trigger_harmonization = st.button("⚡ Exécuter l'harmonisation du Dataset", type="primary", use_container_width=True)
-    
-    if trigger_harmonization:
-        try:
-            with st.status("🛠️ Lancement du pipeline d'harmonisation des données...", expanded=True) as status:
-                # Create Backup of Data7.off labels
-                status.update(label="📁 Création d'une sauvegarde de sécurité...", state="running")
-                backup_base = os.path.join(base_dir, "backups_original_annotations")
-                os.makedirs(backup_base, exist_ok=True)
-                
-                timestamp = int(time.time())
-                backup_dir = os.path.join(backup_base, f"backup_annotations_{timestamp}")
-                
-                if os.path.exists(labels_dir) and len(os.listdir(labels_dir)) > 0:
-                    shutil.copytree(labels_dir, backup_dir)
-                    status.write(f"💾 Sauvegarde créée avec succès sous `{os.path.basename(backup_dir)}` !")
-                else:
-                    status.write("⏳ Aucune annotation existante dans Data7.off/labels à sauvegarder.")
-                    
-                # Create Output Harmonized Directories
-                status.update(label="📦 Initialisation des dossiers harmonisés...", state="running")
-                out_dir = os.path.join(base_dir, "dataset_final_harmonise")
-                out_images = os.path.join(out_dir, "images")
-                out_labels = os.path.join(out_dir, "labels")
-                
-                manual_images = os.path.join(out_dir, "a_verifier_manuellement", "images")
-                manual_labels = os.path.join(out_dir, "a_verifier_manuellement", "labels")
-                
-                # Delete any old version to prevent overlap
-                if os.path.exists(out_dir):
-                    try:
-                        shutil.rmtree(out_dir)
-                    except Exception:
-                        pass
-                        
-                os.makedirs(out_images, exist_ok=True)
-                os.makedirs(out_labels, exist_ok=True)
-                os.makedirs(manual_images, exist_ok=True)
-                os.makedirs(manual_labels, exist_ok=True)
-                
-                # Process local site annotations
-                status.update(label="🔄 Analyse et remapping des fichiers d'annotations locaux...", state="running")
-                
-                img_src_dir = os.path.join(base_dir, "Data7.off", "images")
-                
-                total_local_files = 0
-                converted_annots = 0
-                unchanged_annots = 0
-                manual_files_count = 0
-                ignored_annots = 0
-                
-                # Build dict option map
-                # key is class ID, value is final ID (int) or None or "MANUAL"
-                map_lookup = {}
-                for k, v in site_mapping.items():
-                    if v in final_classes.values():
-                        # Find the index
-                        for f_id, f_name in final_classes.items():
-                            if f_name == v:
-                                map_lookup[k] = f_id
-                                break
-                    elif v == "À vérifier manuellement":
-                        map_lookup[k] = "MANUAL"
-                    else:
-                        map_lookup[k] = "IGNORE"
-                        
-                if os.path.exists(labels_dir):
-                    lbl_files = [f for f in os.listdir(labels_dir) if f.endswith('.txt')]
-                    total_local_files = len(lbl_files)
-                    
-                    for lf in lbl_files:
-                        lbl_path_in = os.path.join(labels_dir, lf)
-                        
-                        # Check corresponding image
-                        img_name_no_ext, _ = os.path.splitext(lf)
-                        img_found = None
-                        if os.path.exists(img_src_dir):
-                            for ext in ['.jpg', '.jpeg', '.png', '.webp']:
-                                if os.path.exists(os.path.join(img_src_dir, f"{img_name_no_ext}{ext}")):
-                                    img_found = f"{img_name_no_ext}{ext}"
-                                    break
-                                    
-                        # Read and parse labels
-                        lines_to_keep_harmonized = []
-                        lines_to_keep_manual = []
-                        is_manual_required = False
-                        
-                        with open(lbl_path_in, "r") as l_in:
-                            for line in l_in:
-                                parts = line.strip().split()
-                                if parts:
-                                    cid_in = int(parts[0])
-                                    coords = parts[1:]
-                                    
-                                    action = map_lookup.get(cid_in, "IGNORE")
-                                    
-                                    if action == "MANUAL":
-                                        is_manual_required = True
-                                        lines_to_keep_manual.append(f"{cid_in} " + " ".join(coords))
-                                    elif isinstance(action, int):
-                                        lines_to_keep_harmonized.append(f"{action} " + " ".join(coords))
-                                        if action == cid_in:
-                                            unchanged_annots += 1
-                                        else:
-                                            converted_annots += 1
-                                    else:
-                                        ignored_annots += 1
-                                        
-                        # Write the corresponding labels and copy images
-                        if is_manual_required:
-                            manual_files_count += 1
-                            # All boxes go to manual check to avoid partial split
-                            shutil.copy(lbl_path_in, os.path.join(manual_labels, lf))
-                            if img_found:
-                                shutil.copy(os.path.join(img_src_dir, img_found), os.path.join(manual_images, img_found))
-                        else:
-                            # Save to harmonized
-                            with open(os.path.join(out_labels, lf), "w") as l_out:
-                                l_out.write("\n".join(lines_to_keep_harmonized) + "\n")
-                            if img_found:
-                                shutil.copy(os.path.join(img_src_dir, img_found), os.path.join(out_images, img_found))
-                                
-                # Parse external dataset if path provided and valid
-                total_ext_files_copied = 0
-                if ext_classes and os.path.exists(ext_path):
-                    status.update(label="📂 Import et harmonisation du dataset externe...", state="running")
-                    
-                    ext_labels_dir = os.path.join(ext_path, "labels")
-                    ext_images_dir = os.path.join(ext_path, "images")
-                    
-                    # check fallback or direct txt list
-                    if not os.path.exists(ext_labels_dir):
-                        # try root path
-                        ext_labels_dir = ext_path
-                        ext_images_dir = ext_path
-                        
-                    ext_map_lookup = {}
-                    for k, v in ext_mapping.items():
-                        if v in final_classes.values():
-                            for f_id, f_name in final_classes.items():
-                                if f_name == v:
-                                    ext_map_lookup[k] = f_id
-                                    break
-                        elif v == "À vérifier manuellement":
-                            ext_map_lookup[k] = "MANUAL"
-                        else:
-                            ext_map_lookup[k] = "IGNORE"
-                            
-                    if os.path.exists(ext_labels_dir):
-                        ext_lbl_files = [f for f in os.listdir(ext_labels_dir) if f.endswith('.txt')]
-                        
-                        for lf in ext_lbl_files:
-                            lbl_path_in = os.path.join(ext_labels_dir, lf)
-                            img_name_no_ext, _ = os.path.splitext(lf)
-                            
-                            img_found = None
-                            for ext in ['.jpg', '.jpeg', '.png', '.webp']:
-                                if os.path.exists(os.path.join(ext_images_dir, f"{img_name_no_ext}{ext}")):
-                                    img_found = f"{img_name_no_ext}{ext}"
-                                    break
-                                    
-                            lines_to_keep_harmonized = []
-                            lines_to_keep_manual = []
-                            is_manual_required = False
-                            
-                            with open(lbl_path_in, "r") as l_in:
-                                for line in l_in:
-                                    parts = line.strip().split()
-                                    if parts:
-                                        cid_in = int(parts[0])
-                                        coords = parts[1:]
-                                        
-                                        action = ext_map_lookup.get(cid_in, "IGNORE")
-                                        
-                                        if action == "MANUAL":
-                                            is_manual_required = True
-                                            lines_to_keep_manual.append(f"{cid_in} " + " ".join(coords))
-                                        elif isinstance(action, int):
-                                            lines_to_keep_harmonized.append(f"{action} " + " ".join(coords))
-                                            converted_annots += 1
-                                        else:
-                                            ignored_annots += 1
-                                            
-                            if is_manual_required:
-                                manual_files_count += 1
-                                shutil.copy(lbl_path_in, os.path.join(manual_labels, lf))
-                                if img_found:
-                                    shutil.copy(os.path.join(ext_images_dir, img_found), os.path.join(manual_images, img_found))
-                            else:
-                                with open(os.path.join(out_labels, lf), "w") as l_out:
-                                    l_out.write("\n".join(lines_to_keep_harmonized) + "\n")
-                                if img_found:
-                                    shutil.copy(os.path.join(ext_images_dir, img_found), os.path.join(out_images, img_found))
-                                    total_ext_files_copied += 1
-                                    
-                # Create YAML files in target folder
-                names_yaml_content = "\n".join([f"  {i}: \"{name}\"" for i, name in final_classes.items()])
-                yaml_data_content = f"""
-path: "{out_dir.replace('\\', '/')}"
-train: "images"
-val: "images"
-
-names:
-{names_yaml_content}
-"""
-                with open(os.path.join(out_dir, "final_classes.yaml"), "w", encoding="utf-8") as fy_out:
-                    fy_out.write(yaml_data_content.strip())
-                    
-                # Save mapping applied json
-                mapping_applied = {
-                    "site_mapping": {str(k): v for k, v in site_mapping.items()},
-                    "ext_mapping": {str(k): v for k, v in ext_mapping.items()}
-                }
-                with open(os.path.join(out_dir, "mapping_applique.json"), "w", encoding="utf-8") as map_out:
-                    json.dump(mapping_applied, map_out, indent=2, ensure_ascii=False)
-                    
-                # Build report JSON
-                report = {
-                    "harmonization_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "total_local_annotations_files": total_local_files,
-                    "total_external_annotations_files": total_ext_files_copied,
-                    "annotations_remapped_count": converted_annots,
-                    "annotations_unchanged_count": unchanged_annots,
-                    "annotations_ignored_count": ignored_annots,
-                    "images_isolated_to_manual_verification": manual_files_count,
-                    "final_classes": final_classes
-                }
-                with open(os.path.join(out_dir, "rapport_harmonisation.json"), "w", encoding="utf-8") as rep_out:
-                    json.dump(report, rep_out, indent=2, ensure_ascii=False)
-                    
-                # Clean up manual check folders if empty
-                if manual_files_count == 0:
-                    try:
-                        shutil.rmtree(os.path.join(out_dir, "a_verifier_manuellement"))
-                    except Exception:
-                        pass
-                        
-                status.update(label="🎉 Harmonisation finie avec succès !", state="complete")
-                st.balloons()
-                
-                # Show complete report summary
-                st.success("🏆 L'harmonisation globale des classes est terminée ! Les données sont prêtes sous `dataset_final_harmonise/`.")
-                
-                st.markdown("<div style='background-color:#1E293B; border-radius: 8px; padding:15px; margin-top:15px;'>", unsafe_allow_html=True)
-                st.markdown("#### 📋 Synthèse statistique de l'harmonisation")
-                
-                sc1, sc2, sc3 = st.columns(3)
-                with sc1:
-                    st.metric("Total d'images harmonisées", f"{total_local_files + total_ext_files_copied - manual_files_count}")
-                    st.metric("Annotations remappées", f"{converted_annots}")
-                with sc2:
-                    st.metric("Images isolées (Erreurs / Ambiguës)", f"{manual_files_count}")
-                    st.metric("Annotations inchangées", f"{unchanged_annots}")
-                with sc3:
-                    st.metric("Poids de backup créés", f"1 sauvegarde")
-                    st.metric("Annotations ignorées", f"{ignored_annots}")
-                st.markdown("</div>", unsafe_allow_html=True)
-                
-        except Exception as ex_h:
-            st.error(f"Une erreur est survenue pendant l'harmonisation : {ex_h}")
-            st.info("Assurez-vous que l'application possède les droits de lecture/écriture nécessaires dans le dossier du projet.")
+# --- PAGE ACTIVE LEARNING ---
+if selected_section == NAV_SECTIONS[5]:
+    render_active_learning_page(VALIDATION_JSONL_PATH)
