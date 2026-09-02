@@ -66,8 +66,8 @@ backend/app/data/**
 !backend/app/data/training_runs/
 !backend/app/data/training_runs/.gitkeep
 
-# Donnees de validation anti-reflets (runtime, ne pas versionner)
+# Donnees de validation par bounding box (runtime, ne pas versionner)
+validation_data.jsonl
+validation_dataset.csv
 reflection_validation_data.jsonl
 reflection_validation_dataset.csv
-method_comparison_results.jsonl
-method_comparison_results.csv
