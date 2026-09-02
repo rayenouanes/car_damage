@@ -14,6 +14,26 @@ import streamlit as st
 import numpy as np
 from PIL import Image
 from dataset_split import prepare_train_val_test_split, summarize_dataset_split, sync_existing_split_item
+from utils.image_processing import apply_clahe
+from utils.method_comparison import (
+    METHOD_RESULTS_CSV_FILENAME,
+    METHOD_RESULTS_JSONL_FILENAME,
+    build_comparison_rows,
+    export_method_results_csv,
+    match_boxes,
+    save_method_results,
+)
+from utils.specseg_adapter import SpecSegAdapter, SpecSegError, image_sha256
+from utils.reflection_analysis import (
+    compute_reflection_metrics,
+    compute_reflection_risk,
+)
+from utils.reflection_validation import (
+    VALIDATION_CSV_FILENAME,
+    VALIDATION_JSONL_FILENAME,
+    export_validation_dataset_csv,
+    save_bbox_validation,
+)
 
 _cv2 = None
 _yolo = None
@@ -2025,9 +2045,156 @@ if st.session_state.get("last_cuda_fallback_error"):
         "Une erreur CUDA a été contournée automatiquement. La dernière image a été analysée sur CPU."
     )
 
+st.sidebar.markdown("---")
+st.sidebar.subheader("✨ Analyse anti-reflets (SpecSeg)")
+st.sidebar.caption(
+    "SpecSeg agit comme second expert : il identifie les reflets spéculaires "
+    "en parallèle de YOLO, sans jamais modifier l'image analysée par YOLO. "
+    "Activez-le via le « Mode d'analyse de l'image » dans la section d'annotation."
+)
+specseg_enabled = (
+    st.session_state.get("tab1_analysis_mode", "Original") == "SpecSeg"
+    or bool(st.session_state.get("tab1_compare_modes", False))
+)
+specseg_show_mask = st.sidebar.checkbox(
+    "Afficher le masque SpecSeg",
+    value=False,
+    key="specseg_show_mask",
+    disabled=not specseg_enabled,
+)
+specseg_mask_threshold = st.sidebar.slider(
+    "Seuil masque SpecSeg",
+    0.0,
+    1.0,
+    0.5,
+    0.05,
+    key="specseg_mask_threshold",
+    disabled=not specseg_enabled,
+)
+specseg_show_stats = st.sidebar.checkbox(
+    "Afficher les statistiques anti-reflets par détection",
+    value=True,
+    key="specseg_show_stats",
+    disabled=not specseg_enabled,
+)
+
+REFLECTION_VALIDATION_JSONL_PATH = os.path.join(APP_BASE_DIR, VALIDATION_JSONL_FILENAME)
+REFLECTION_VALIDATION_CSV_PATH = os.path.join(APP_BASE_DIR, VALIDATION_CSV_FILENAME)
+METHOD_RESULTS_JSONL_PATH = os.path.join(APP_BASE_DIR, METHOD_RESULTS_JSONL_FILENAME)
+METHOD_RESULTS_CSV_PATH = os.path.join(APP_BASE_DIR, METHOD_RESULTS_CSV_FILENAME)
+if st.sidebar.button(
+    "📄 Exporter le dataset de validation (CSV)",
+    key="specseg_export_csv",
+    use_container_width=True,
+):
+    try:
+        exported_rows = export_validation_dataset_csv(
+            REFLECTION_VALIDATION_JSONL_PATH, REFLECTION_VALIDATION_CSV_PATH
+        )
+        st.sidebar.success(
+            f"{exported_rows} ligne(s) exportée(s) vers `{VALIDATION_CSV_FILENAME}`."
+        )
+    except Exception as export_error:
+        st.sidebar.error(f"Export CSV impossible : {export_error}")
+
+
+@st.cache_resource
+def get_specseg_adapter() -> SpecSegAdapter:
+    return SpecSegAdapter()
+
+
+def get_specseg_mask_for_image(image_rgb):
+    """Masque SpecSeg de la frame, calculé une seule fois par image (hash SHA256).
+
+    Retourne (mask, error_message). Toute erreur SpecSeg est non bloquante :
+    YOLO continue normalement avec mask=None.
+    """
+    try:
+        image_hash = image_sha256(image_rgb)
+    except Exception as hash_error:
+        return None, f"Image invalide pour SpecSeg : {hash_error}"
+    cached = st.session_state.get("specseg_mask_cache") or {}
+    if cached.get("hash") == image_hash:
+        return cached.get("mask"), cached.get("error")
+    mask, error_message = None, None
+    try:
+        with st.spinner("✨ Analyse SpecSeg des reflets spéculaires..."):
+            mask = get_specseg_adapter().predict_mask(image_rgb)
+    except SpecSegError as specseg_error:
+        error_message = str(specseg_error)
+    except Exception as unexpected_error:
+        error_message = f"Erreur SpecSeg inattendue : {unexpected_error}"
+    st.session_state.specseg_mask_cache = {
+        "hash": image_hash,
+        "mask": mask,
+        "error": error_message,
+    }
+    return mask, error_message
+
+
+def annotate_boxes_with_reflection_metrics(boxes, reflection_mask, mask_threshold):
+    """Ajoute les métriques SpecSeg à chaque box sans toucher à la confiance YOLO."""
+    for item in boxes:
+        metrics = compute_reflection_metrics(
+            reflection_mask, item["box"], mask_threshold=mask_threshold
+        )
+        item["reflection_overlap"] = metrics["reflection_overlap"]
+        item["reflection_mean"] = metrics["reflection_mean"]
+        item["reflection_max"] = metrics["reflection_max"]
+        item["reflection_risk"] = compute_reflection_risk(metrics["reflection_overlap"])
+    return boxes
+
+
+def render_specseg_mask_view(image_rgb, reflection_mask, mask_threshold):
+    """Affiche IMAGE ORIGINALE | MASQUE SPECSEG + overlay semi-transparent.
+
+    Uniquement de la visualisation : l'image originale stockée n'est jamais modifiée.
+    """
+    mask_col1, mask_col2 = st.columns(2)
+    with mask_col1:
+        st.image(image_rgb, caption="Image originale", use_container_width=True)
+    with mask_col2:
+        mask_uint8 = (np.clip(reflection_mask, 0.0, 1.0) * 255).astype(np.uint8)
+        st.image(mask_uint8, caption="Masque SpecSeg", use_container_width=True)
+    if st.checkbox("Superposer le masque (overlay semi-transparent)", key="specseg_overlay_toggle"):
+        overlay = image_rgb.copy()
+        highlight = np.zeros_like(overlay)
+        highlight[..., 0] = 255  # rouge sur les zones de reflet
+        binary = (reflection_mask > float(mask_threshold))[..., None].astype(np.float32)
+        blended = overlay.astype(np.float32) * (1 - 0.45 * binary) + highlight.astype(np.float32) * (0.45 * binary)
+        st.image(
+            blended.astype(np.uint8),
+            caption=f"Original + masque SpecSeg (seuil {mask_threshold:.2f})",
+            use_container_width=True,
+        )
+
+def parse_yolo_boxes(results, model_to_dataset_id, id_to_model_name, ignored_predictions):
+    """Convertit un résultat Ultralytics en liste de boxes internes."""
+    boxes = []
+    if results is not None:
+        for box in results.boxes:
+            x1, y1, x2, y2 = map(int, box.xyxy[0].cpu().numpy())
+            model_cls_id = int(box.cls[0])
+            cls_id = model_to_dataset_id.get(model_cls_id)
+            conf_val = float(box.conf[0])
+            if cls_id is None:
+                ignored_predictions[id_to_model_name.get(model_cls_id, f"class_{model_cls_id}")] += 1
+                continue
+            boxes.append({
+                'class_id': cls_id,
+                'model_class_id': model_cls_id,
+                'model_class_name': id_to_model_name.get(model_cls_id, f"class_{model_cls_id}"),
+                'box': [x1, y1, x2, y2],
+                'conf': conf_val
+            })
+    return boxes
+
+
 # Session State Initialization - ISOLATED FOR EACH TAB TO AVOID INTERFERENCE
 if "tab1_boxes" not in st.session_state:
     st.session_state.tab1_boxes = []
+if "tab1_clahe_boxes" not in st.session_state:
+    st.session_state.tab1_clahe_boxes = []
 if "tab1_current_file" not in st.session_state:
     st.session_state.tab1_current_file = None
 if "tab1_current_image_key" not in st.session_state:
@@ -2144,6 +2311,26 @@ if selected_section == NAV_SECTIONS[0]:
         horizontal=True,
         key="annotation_work_mode"
     )
+
+    analysis_mode = st.radio(
+        "Mode d'analyse de l'image",
+        ["Original", "CLAHE", "SpecSeg"],
+        horizontal=True,
+        key="tab1_analysis_mode",
+        help=(
+            "Original : image RGB originale → YOLO (comportement actuel). "
+            "CLAHE : copie temporaire avec CLAHE sur la luminance → YOLO. "
+            "SpecSeg : YOLO sur l'image originale + masque de reflets analysé par bounding box "
+            "(l'image envoyée à YOLO n'est jamais modifiée)."
+        ),
+    )
+    compare_all_modes = st.checkbox(
+        "Comparer les 3 modes",
+        key="tab1_compare_modes",
+        help="Exécute Original, CLAHE et SpecSeg sur exactement la même image et compare les résultats.",
+    )
+    specseg_enabled = analysis_mode == "SpecSeg" or compare_all_modes
+
     
     img_bgr = None
     filename = None
@@ -2810,7 +2997,7 @@ if selected_section == NAV_SECTIONS[0]:
         force_analysis = st.session_state.get(force_flag_key, False)
         existing_annotations_available = os.path.exists(existing_label_path)
         image_content_hash = hashlib.sha256(img_bgr.tobytes()).hexdigest()[:16]
-        current_image_key = f"{work_mode}:{filename}:{image_content_hash}"
+        current_image_key = f"{work_mode}:{analysis_mode}:{'cmp' if compare_all_modes else 'std'}:{filename}:{image_content_hash}"
         new_tab1_file = st.session_state.get("tab1_current_image_key") != current_image_key
 
         if new_tab1_file:
@@ -2821,6 +3008,7 @@ if selected_section == NAV_SECTIONS[0]:
                 if work_mode == "🎥 Une vidéo"
                 else []
             )
+            st.session_state.tab1_clahe_boxes = []
             st.session_state.tab1_history = []  # Clear history on new image
             st.session_state.canvas_key += 1
             st.session_state.tab1_loaded_existing_annotations[filename] = False
@@ -2866,10 +3054,15 @@ if selected_section == NAV_SECTIONS[0]:
                 st.error("Aucun modèle YOLO n'est chargé. Vérifiez que `best_2.pt` est disponible.")
             else:
                 try:
+                    # L'image originale n'est jamais modifiée : CLAHE produit
+                    # uniquement une copie temporaire pour l'inférence.
+                    image_for_yolo = pil_img
+                    if analysis_mode == "CLAHE" and not compare_all_modes:
+                        image_for_yolo = Image.fromarray(apply_clahe(img_rgb))
                     with st.spinner("🚀 Analyse IA et détection automatique des dommages en cours..."):
                         results, used_device, cuda_fallback_error = run_inference_safely(
                             model,
-                            pil_img,
+                            image_for_yolo,
                             conf_threshold,
                             iou_threshold,
                             active_model_path,
@@ -2889,23 +3082,26 @@ if selected_section == NAV_SECTIONS[0]:
             model_to_dataset_id = st.session_state.active_model_classes.get("id_to_dataset_id", {})
             id_to_model_name = st.session_state.active_model_classes.get("id_to_name", {})
             ignored_predictions = defaultdict(int)
-            st.session_state.tab1_boxes = []
-            if results is not None:
-                for box in results.boxes:
-                    x1, y1, x2, y2 = map(int, box.xyxy[0].cpu().numpy())
-                    model_cls_id = int(box.cls[0])
-                    cls_id = model_to_dataset_id.get(model_cls_id)
-                    conf_val = float(box.conf[0])
-                    if cls_id is None:
-                        ignored_predictions[id_to_model_name.get(model_cls_id, f"class_{model_cls_id}")] += 1
-                        continue
-                    st.session_state.tab1_boxes.append({
-                        'class_id': cls_id,
-                        'model_class_id': model_cls_id,
-                        'model_class_name': id_to_model_name.get(model_cls_id, f"class_{model_cls_id}"),
-                        'box': [x1, y1, x2, y2],
-                        'conf': conf_val
-                    })
+            st.session_state.tab1_boxes = parse_yolo_boxes(
+                results, model_to_dataset_id, id_to_model_name, ignored_predictions
+            )
+            st.session_state.tab1_clahe_boxes = []
+            if compare_all_modes and model is not None and results is not None:
+                try:
+                    with st.spinner("🚀 Analyse CLAHE (copie temporaire) en cours..."):
+                        clahe_results, _, _ = run_inference_safely(
+                            model,
+                            Image.fromarray(apply_clahe(img_rgb)),
+                            conf_threshold,
+                            iou_threshold,
+                            active_model_path,
+                            prefer_gpu=prefer_gpu_inference,
+                        )
+                    st.session_state.tab1_clahe_boxes = parse_yolo_boxes(
+                        clahe_results, model_to_dataset_id, id_to_model_name, ignored_predictions
+                    )
+                except Exception as clahe_error:
+                    st.warning(f"Analyse CLAHE impossible : {clahe_error}")
             if ignored_predictions:
                 ignored_text = ", ".join([f"{name} ({count})" for name, count in ignored_predictions.items()])
                 st.warning(
@@ -2962,6 +3158,24 @@ if selected_section == NAV_SECTIONS[0]:
                     st.rerun()
             with action_col2:
                 st.caption("Annotations actuelles conservées.")
+
+        # --- Analyse SpecSeg (second expert, en parallèle de YOLO) ---
+        # L'image envoyée à YOLO n'est jamais modifiée : SpecSeg reçoit une
+        # copie de la même image RGB originale et produit uniquement un masque.
+        reflection_mask = None
+        specseg_error_message = None
+        if specseg_enabled:
+            reflection_mask, specseg_error_message = get_specseg_mask_for_image(img_rgb)
+            if specseg_error_message:
+                st.warning(
+                    "⚠️ SpecSeg indisponible — la détection YOLO continue normalement. "
+                    f"Détail : {specseg_error_message}"
+                )
+            annotate_boxes_with_reflection_metrics(
+                st.session_state.tab1_boxes,
+                reflection_mask,
+                specseg_mask_threshold,
+            )
 
         # Main Dashboard Metrics Header
         st.markdown("<div class='premium-card'>", unsafe_allow_html=True)
@@ -3077,6 +3291,115 @@ if selected_section == NAV_SECTIONS[0]:
                             st.success(f"BBox '{get_dataset_class_display(selected_class_id)}' ajoutée avec succès ! 🎉")
                             st.rerun()
 
+            if specseg_enabled and specseg_show_mask:
+                st.markdown("---")
+                st.markdown("### ✨ Masque SpecSeg")
+                if reflection_mask is not None:
+                    render_specseg_mask_view(img_rgb, reflection_mask, specseg_mask_threshold)
+                else:
+                    st.info("Masque SpecSeg indisponible pour cette image.")
+
+            if compare_all_modes:
+                st.markdown("---")
+                st.markdown("### 🆚 Comparaison des 3 modes (Original / CLAHE / SpecSeg)")
+                st.caption(
+                    "Les trois méthodes utilisent exactement la même image originale. "
+                    "Original et SpecSeg partagent les mêmes détections YOLO (YOLO n'est pas relancé) ; "
+                    "CLAHE relance YOLO sur une copie temporaire."
+                )
+                original_boxes = [
+                    {k: item[k] for k in ("class_id", "box", "conf")}
+                    for item in st.session_state.tab1_boxes
+                ]
+                clahe_boxes = st.session_state.get("tab1_clahe_boxes", [])
+                specseg_boxes = st.session_state.tab1_boxes
+
+                comp_col1, comp_col2, comp_col3 = st.columns(3)
+                with comp_col1:
+                    st.markdown(f"**ORIGINAL** — {len(original_boxes)} détection(s)")
+                    for idx, item in enumerate(original_boxes):
+                        st.caption(
+                            f"#{idx+1} {get_dataset_class_display(item['class_id'])} — "
+                            f"YOLO : {item['conf']:.2f}"
+                        )
+                with comp_col2:
+                    st.markdown(f"**CLAHE** — {len(clahe_boxes)} détection(s)")
+                    for idx, item in enumerate(clahe_boxes):
+                        st.caption(
+                            f"#{idx+1} {get_dataset_class_display(item['class_id'])} — "
+                            f"YOLO : {item['conf']:.2f}"
+                        )
+                with comp_col3:
+                    st.markdown(f"**SPECSEG** — {len(specseg_boxes)} détection(s) YOLO")
+                    for idx, item in enumerate(specseg_boxes):
+                        if item.get("reflection_overlap") is None:
+                            st.caption(
+                                f"#{idx+1} {get_dataset_class_display(item['class_id'])} — "
+                                f"YOLO : {item['conf']:.2f} | SpecSeg indisponible"
+                            )
+                        else:
+                            st.caption(
+                                f"#{idx+1} {get_dataset_class_display(item['class_id'])} — "
+                                f"YOLO : {item['conf']:.2f} | "
+                                f"overlap : {item['reflection_overlap']:.0%} | "
+                                f"mean : {item['reflection_mean']:.2f} | "
+                                f"risk : {item['reflection_risk']}"
+                            )
+
+                comparison_rows = build_comparison_rows(
+                    {
+                        "Original": original_boxes,
+                        "CLAHE": clahe_boxes,
+                        "SpecSeg": specseg_boxes,
+                    },
+                    get_dataset_class_display,
+                )
+                if comparison_rows:
+                    st.markdown("#### 📊 Table de comparaison")
+                    st.dataframe(comparison_rows, use_container_width=True)
+
+                matched_pairs = match_boxes(original_boxes, clahe_boxes)
+                if matched_pairs:
+                    st.markdown("#### 🔗 Associations Original ↔ CLAHE (même classe, IoU > 0.5)")
+                    for ia, ib, iou in matched_pairs:
+                        st.caption(
+                            f"Original #{ia+1} ↔ CLAHE #{ib+1} — "
+                            f"{get_dataset_class_display(original_boxes[ia]['class_id'])} | "
+                            f"IoU : {iou:.2f} | "
+                            f"conf : {original_boxes[ia]['conf']:.2f} → {clahe_boxes[ib]['conf']:.2f}"
+                        )
+                elif original_boxes and clahe_boxes:
+                    st.caption("Aucune association Original/CLAHE (classe identique + IoU > 0.5).")
+
+                if st.button(
+                    "💾 Exporter les résultats des 3 modes (JSONL + CSV)",
+                    key="export_method_comparison",
+                    use_container_width=True,
+                ):
+                    try:
+                        total_saved = 0
+                        for method_name, method_items in (
+                            ("Original", original_boxes),
+                            ("CLAHE", clahe_boxes),
+                            ("SpecSeg", specseg_boxes),
+                        ):
+                            total_saved += save_method_results(
+                                METHOD_RESULTS_JSONL_PATH,
+                                image_id=filename,
+                                method=method_name,
+                                boxes=method_items,
+                                class_name_getter=get_dataset_class_name,
+                            )
+                        exported = export_method_results_csv(
+                            METHOD_RESULTS_JSONL_PATH, METHOD_RESULTS_CSV_PATH
+                        )
+                        st.success(
+                            f"{total_saved} ligne(s) ajoutée(s) — {exported} ligne(s) au total "
+                            f"dans `{METHOD_RESULTS_CSV_FILENAME}`."
+                        )
+                    except Exception as export_error:
+                        st.error(f"Export impossible : {export_error}")
+
         with col_panel:
             st.subheader("📋 Boîtes à vérifier")
             
@@ -3092,6 +3415,24 @@ if selected_section == NAV_SECTIONS[0]:
                     display_label = get_dataset_class_display(cid)
                     c_hex = get_dataset_class_color(cid)
                     
+                    specseg_stats_html = ""
+                    if (
+                        specseg_enabled
+                        and specseg_show_stats
+                        and item.get("reflection_overlap") is not None
+                    ):
+                        risk = item.get("reflection_risk", "LOW")
+                        risk_color = {"LOW": "#63D0A8", "MEDIUM": "#FBBF24", "HIGH": "#F97066"}.get(risk, "#94A3B8")
+                        specseg_stats_html = (
+                            "<div style='color: #CBD5E1; font-size: 0.85rem; margin-top: 5px;'>"
+                            f"YOLO : {cf:.2f} | "
+                            f"Reflection overlap : {item['reflection_overlap']:.0%} | "
+                            f"Reflection mean : {item['reflection_mean']:.2f} | "
+                            f"Reflection max : {item['reflection_max']:.2f} | "
+                            f"Reflection risk : <span style='color:{risk_color}; font-weight:700;'>{risk}</span>"
+                            "</div>"
+                        )
+
                     # Render box information card
                     st.markdown(f"""
                     <div class='box-card' style='border-left: 5px solid {c_hex};'>
@@ -3104,8 +3445,47 @@ if selected_section == NAV_SECTIONS[0]:
                         <div style='color: #94A3B8; font-size: 0.85rem; margin-top: 5px;'>
                             Position : [X: {bx1} ➜ {bx2}] | [Y: {by1} ➜ {by2}]
                         </div>
+                        {specseg_stats_html}
                     </div>
                     """, unsafe_allow_html=True)
+
+                    # Validation individuelle de la détection (une ligne JSONL par box)
+                    val_key = f"bbox_validation_{current_image_key}_{idx}"
+                    saved_validation = st.session_state.get(val_key)
+                    if saved_validation:
+                        st.caption(f"Validation enregistrée : **{saved_validation}**")
+                    v_col1, v_col2, v_col3 = st.columns(3)
+                    validation_choice = None
+                    with v_col1:
+                        if st.button("✅ TP", key=f"val_tp_{idx}", use_container_width=True):
+                            validation_choice = "TP"
+                    with v_col2:
+                        if st.button("❌ FP", key=f"val_fp_{idx}", use_container_width=True):
+                            validation_choice = "FP"
+                    with v_col3:
+                        if st.button("❔ Ignore", key=f"val_ignore_{idx}", use_container_width=True):
+                            validation_choice = "IGNORE"
+                    if validation_choice:
+                        try:
+                            save_bbox_validation(
+                                REFLECTION_VALIDATION_JSONL_PATH,
+                                image_id=filename,
+                                class_name=get_dataset_class_name(cid),
+                                yolo_confidence=float(cf),
+                                bbox=[bx1, by1, bx2, by2],
+                                image_width=orig_w,
+                                image_height=orig_h,
+                                validation=validation_choice,
+                                method="SpecSeg" if compare_all_modes else analysis_mode,
+                                reflection_overlap=item.get("reflection_overlap"),
+                                reflection_mean=item.get("reflection_mean"),
+                                reflection_max=item.get("reflection_max"),
+                                reflection_risk=item.get("reflection_risk"),
+                            )
+                            st.session_state[val_key] = validation_choice
+                            st.toast(f"Box #{idx+1} validée : {validation_choice}")
+                        except Exception as validation_error:
+                            st.error(f"Impossible d'enregistrer la validation : {validation_error}")
                     
                     # Actions for this box
                     b_col1, b_col2 = st.columns(2)

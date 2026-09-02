@@ -65,3 +65,9 @@ backend/app/data/**
 !backend/app/data/error_bank/.gitkeep
 !backend/app/data/training_runs/
 !backend/app/data/training_runs/.gitkeep
+
+# Donnees de validation anti-reflets (runtime, ne pas versionner)
+reflection_validation_data.jsonl
+reflection_validation_dataset.csv
+method_comparison_results.jsonl
+method_comparison_results.csv
