@@ -1871,11 +1871,16 @@ st.sidebar.subheader("🤖 Modèle utilisé")
 available_models = {
     "Référence unique (best_2.pt)": "best_2.pt"
 }
-for pt_file in sorted([f for f in os.listdir(base_dir) if f.lower().endswith(".pt") and f.startswith("data7_from_best_2")]):
-    available_models[f"Modèle Data7 ({pt_file})"] = pt_file
+model_search_dirs = [base_dir, os.getcwd()]
+for search_dir in model_search_dirs:
+    for pt_file in sorted([f for f in os.listdir(search_dir) if f.lower().endswith(".pt") and f.startswith("data7_from_best_2")]):
+        available_models.setdefault(f"Modèle Data7 ({pt_file})", pt_file)
 
-# Check which models actually exist
-existing_models = {k: v for k, v in available_models.items() if os.path.exists(os.path.join(base_dir, v))}
+# Check which models actually exist (same lookup order as load_model)
+existing_models = {
+    k: v for k, v in available_models.items()
+    if any(os.path.exists(os.path.join(d, v)) for d in model_search_dirs)
+}
 if not existing_models:
     st.sidebar.error("`best_2.pt` est introuvable. Place ce fichier dans le dossier du projet pour utiliser l'application.")
     existing_models = {"Référence unique (best_2.pt manquant)": "best_2.pt"}
@@ -5620,8 +5625,9 @@ if selected_section == NAV_SECTIONS[4]:
                                     
                 # Create YAML files in target folder
                 names_yaml_content = "\n".join([f"  {i}: \"{name}\"" for i, name in final_classes.items()])
+                out_dir_posix = out_dir.replace("\\", "/")
                 yaml_data_content = f"""
-path: "{out_dir.replace('\\', '/')}"
+path: "{out_dir_posix}"
 train: "images"
 val: "images"
 
