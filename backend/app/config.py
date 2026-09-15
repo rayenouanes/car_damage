@@ -79,6 +79,11 @@ class Settings:
     def database_path(self) -> Path:
         return self.data_dir / "active_learning.sqlite3"
 
+    @property
+    def project_root(self) -> Path:
+        """Repository root used by the three dataset curation stores."""
+        return PROJECT_ROOT
+
     def path(self, name: str) -> Path:
         return self.data_dir / name
 

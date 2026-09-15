@@ -14,6 +14,7 @@ import streamlit as st
 import numpy as np
 from PIL import Image
 from dataset_split import prepare_train_val_test_split, summarize_dataset_split, sync_existing_split_item
+from backend.app.services.dataset_curation_service import DatasetCurationService
 
 _cv2 = None
 _yolo = None
@@ -86,7 +87,9 @@ FINAL_DATASET_COLORS = {
     5: '#FB923C',
 }
 
-APP_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# The Streamlit entrypoint lives in ``frontend/``; datasets, weights and the
+# historical Data7.off workflow live at repository root.
+APP_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 try:
     from dotenv import load_dotenv
 
@@ -494,7 +497,7 @@ def get_active_class_color(class_id: int) -> str:
 
 
 def ensure_annotation_session_dirs() -> dict:
-    project_root = os.path.dirname(os.path.abspath(__file__))
+    project_root = APP_BASE_DIR
     sessions_root = os.path.join(project_root, "annotations_sessions")
     os.makedirs(sessions_root, exist_ok=True)
 
@@ -528,7 +531,7 @@ def ensure_annotation_session_dirs() -> dict:
 
 
 def persist_annotation(filename: str, boxes: list, image_w: int, image_h: int, *, image_bgr=None, image_path=None, source: str = "tab1") -> dict:
-    project_root = os.path.dirname(os.path.abspath(__file__))
+    project_root = APP_BASE_DIR
     data7_dir = os.path.join(project_root, "Data7.off")
     images_dir = os.path.join(data7_dir, "images")
     labels_dir = os.path.join(data7_dir, "labels")
@@ -674,11 +677,34 @@ def persist_annotation(filename: str, boxes: list, image_w: int, image_h: int, *
     return {
         "image_path": img_save_path,
         "label_path": txt_save_path,
+        "segmentation_label_path": segmentation_label_path,
         "split_sync": split_sync_info,
         "session_image_path": session_img_path,
         "metadata_path": metadata_path,
         "session_name": st.session_state.get("annotation_session_name"),
     }
+
+
+def persist_brain_validation(item: dict, *, filename: str, image_bgr, image_w: int, image_h: int,
+                             validation: str, fp_reason: str | None = None) -> dict:
+    """Persist one bbox verdict immediately; safe to call on every rerun."""
+    ok, encoded = cv2.imencode(".jpg", image_bgr)
+    if not ok:
+        raise ValueError("Impossible d'encoder l'image pour le Brain Dataset")
+    class_id = int(item.get("model_class_id", item.get("class_id", 0)))
+    class_name = str(item.get("model_class_name") or get_dataset_class_name(int(item.get("class_id", 0))))
+    model_version = os.path.basename(str(st.session_state.get("active_model_path", "best_2.pt")))
+    record = dataset_curation.save_validation(
+        image_bytes=encoded.tobytes(), image_path=filename, model_version=model_version,
+        class_id=class_id, class_name=class_name, bbox=[float(v) for v in item["box"]],
+        yolo_confidence=float(item.get("conf", 0.0)), human_validation=validation,
+        fp_reason=fp_reason, image_size=(int(image_w), int(image_h)),
+    )
+    item["human_validation"] = validation
+    item["fp_reason"] = fp_reason if validation == "FP" else None
+    item["brain_detection_id"] = record.get("detection_id")
+    item["brain_saved"] = True
+    return record
 
 # Patch Ultralytics cache scanning before any training/evaluation call on Windows.
 patch_ultralytics_cache_pool_for_windows()
@@ -1131,7 +1157,8 @@ st.markdown(
 )
 
 # Base Directory
-base_dir = os.path.dirname(os.path.abspath(__file__))
+base_dir = APP_BASE_DIR
+dataset_curation = DatasetCurationService(base_dir)
 
 # Model Loader
 @st.cache_resource
@@ -2904,7 +2931,9 @@ if selected_section == NAV_SECTIONS[0]:
                         'model_class_id': model_cls_id,
                         'model_class_name': id_to_model_name.get(model_cls_id, f"class_{model_cls_id}"),
                         'box': [x1, y1, x2, y2],
-                        'conf': conf_val
+                        'conf': conf_val,
+                        'human_validation': None,
+                        'fp_reason': None,
                     })
             if ignored_predictions:
                 ignored_text = ", ".join([f"{name} ({count})" for name, count in ignored_predictions.items()])
@@ -3003,7 +3032,10 @@ if selected_section == NAV_SECTIONS[0]:
                 bx1, by1, bx2, by2 = item['box']
                 cid = item['class_id']
                 cf = item['conf']
-                c_hex = get_dataset_class_color(cid).lstrip('#')
+                verdict = str(item.get("human_validation") or "").upper()
+                c_hex = {"TP": "22C55E", "FP": "EF4444", "UNSURE": "F59E0B"}.get(
+                    verdict, get_dataset_class_color(cid).lstrip('#')
+                )
                 c_rgb = tuple(int(c_hex[i:i+2], 16) for i in (0, 2, 4))
 
                 mask_polygon = item.get("mask_polygon")
@@ -3070,7 +3102,9 @@ if selected_section == NAV_SECTIONS[0]:
                             st.session_state.tab1_boxes.append({
                                 'class_id': selected_class_id,
                                 'box': [x1, y1, x2, y2],
-                                'conf': 1.0  # Manual boxes are 100% confident
+                                'conf': 1.0,  # Manual boxes are 100% confident
+                                'human_validation': None,
+                                'fp_reason': None,
                             })
                             # Increment canvas key to completely clear/reset canvas drawings
                             st.session_state.canvas_key += 1
@@ -3091,6 +3125,8 @@ if selected_section == NAV_SECTIONS[0]:
                     
                     display_label = get_dataset_class_display(cid)
                     c_hex = get_dataset_class_color(cid)
+                    human_validation = str(item.get("human_validation") or "Non validée").upper()
+                    validation_color = {"TP": "#22C55E", "FP": "#EF4444", "UNSURE": "#F59E0B"}.get(human_validation, "#94A3B8")
                     
                     # Render box information card
                     st.markdown(f"""
@@ -3101,9 +3137,12 @@ if selected_section == NAV_SECTIONS[0]:
                                 {cf:.1%} Conf.
                             </span>
                         </div>
-                        <div style='color: #94A3B8; font-size: 0.85rem; margin-top: 5px;'>
-                            Position : [X: {bx1} ➜ {bx2}] | [Y: {by1} ➜ {by2}]
-                        </div>
+                         <div style='color: #94A3B8; font-size: 0.85rem; margin-top: 5px;'>
+                             Position : [X: {bx1} ➜ {bx2}] | [Y: {by1} ➜ {by2}]
+                         </div>
+                         <div style='color: {validation_color}; font-size: 0.85rem; margin-top: 5px; font-weight:700;'>
+                             Verdict Brain : {human_validation}{(' — ' + str(item.get('fp_reason'))) if item.get('fp_reason') else ''}
+                         </div>
                     </div>
                     """, unsafe_allow_html=True)
                     
@@ -3129,6 +3168,37 @@ if selected_section == NAV_SECTIONS[0]:
                             save_history("tab1")
                             st.session_state.tab1_boxes.pop(idx)
                             st.warning(f"BBox #{idx+1} supprimée !")
+
+                    verdict_col1, verdict_col2, verdict_col3 = st.columns(3)
+                    with verdict_col1:
+                        if st.button("✅ TP", key=f"brain_tp_{idx}", use_container_width=True):
+                            try:
+                                persist_brain_validation(item, filename=filename, image_bgr=img_bgr,
+                                                         image_w=orig_w, image_h=orig_h, validation="TP")
+                                st.rerun()
+                            except Exception as exc:
+                                st.error(f"Échec sauvegarde Brain : {exc}")
+                    with verdict_col2:
+                        fp_reason = st.selectbox(
+                            "Pourquoi ?", ["reflection", "shadow", "lighting", "dirt", "body_edge", "texture", "other"],
+                            index=0, key=f"brain_reason_{idx}",
+                            format_func=lambda value: value.replace("_", " ").title(),
+                        )
+                        if st.button("⛔ FP", key=f"brain_fp_{idx}", use_container_width=True):
+                            try:
+                                persist_brain_validation(item, filename=filename, image_bgr=img_bgr,
+                                                         image_w=orig_w, image_h=orig_h, validation="FP", fp_reason=fp_reason)
+                                st.rerun()
+                            except Exception as exc:
+                                st.error(f"Échec sauvegarde Brain : {exc}")
+                    with verdict_col3:
+                        if st.button("❔ Unsure", key=f"brain_unsure_{idx}", use_container_width=True):
+                            try:
+                                persist_brain_validation(item, filename=filename, image_bgr=img_bgr,
+                                                         image_w=orig_w, image_h=orig_h, validation="UNSURE")
+                                st.rerun()
+                            except Exception as exc:
+                                st.error(f"Échec sauvegarde Brain : {exc}")
 
             if work_mode == "🎥 Une vidéo":
                 st.markdown("---")
@@ -3279,74 +3349,86 @@ if selected_section == NAV_SECTIONS[0]:
                     st.rerun()
 
             st.markdown("---")
-            st.markdown("### 💾 Sauvegarder dans Data7.off")
-            st.write("Enregistre l'image et ses boîtes au format YOLO.")
-            
-            # Determine button label based on work mode and batch progress
-            if work_mode in {"📷 Une image", "🎥 Une vidéo"}:
-                btn_label = (
-                    "📦 Enregistrer la meilleure frame"
-                    if work_mode == "🎥 Une vidéo"
-                    else "📦 Enregistrer"
-                )
-            else:
-                total_imgs = len(st.session_state.batch_images)
-                curr_idx = st.session_state.batch_index
-                if curr_idx < total_imgs - 1:
-                    btn_label = "📦 Enregistrer et passer à la suivante"
-                else:
-                    btn_label = "🏁 Enregistrer et terminer le lot"
-            
-            if st.button(btn_label, type="primary", use_container_width=True):
+            counts = {
+                "TP": sum(1 for item in st.session_state.tab1_boxes if item.get("human_validation") == "TP"),
+                "FP": sum(1 for item in st.session_state.tab1_boxes if item.get("human_validation") == "FP"),
+                "UNSURE": sum(1 for item in st.session_state.tab1_boxes if item.get("human_validation") == "UNSURE"),
+            }
+            counter_cols = st.columns(3)
+            counter_cols[0].metric("TP", counts["TP"])
+            counter_cols[1].metric("FP", counts["FP"])
+            counter_cols[2].metric("Unsure", counts["UNSURE"])
+            st.markdown("### 🗂️ Destination de l'image")
+            st.caption("Les verdicts TP/FP ci-dessus sont déjà conservés dans le Brain Dataset. Ce choix concerne uniquement le Ground Truth de l'image.")
+            dest_col1, dest_col2, dest_col3 = st.columns(3)
+
+            def advance_after_destination(message: str) -> None:
+                st.success(message)
+                if work_mode == "📁 Plusieurs images ou ZIP":
+                    total_imgs = len(st.session_state.batch_images)
+                    curr_idx = st.session_state.batch_index
+                    if curr_idx < total_imgs - 1:
+                        st.session_state.batch_index += 1
+                        st.session_state.canvas_key += 1
+                        st.rerun()
+                    st.session_state.batch_images = []
+                    st.session_state.batch_index = 0
+                st.session_state.tab1_current_file = None
+                st.session_state.tab1_current_image_key = None
+                st.session_state.tab1_boxes = []
+                st.session_state.canvas_key += 1
+
+            with dest_col1:
+                add_yolo = st.button("➕ Ajouter au dataset YOLO", type="primary", use_container_width=True)
+            with dest_col2:
+                add_reflection = st.button("✨ Ajouter au dataset Reflection", use_container_width=True)
+            with dest_col3:
+                add_none = st.button("🚫 Ne pas ajouter", use_container_width=True)
+
+            if add_yolo:
                 invalid_ids = find_nonstandard_class_ids(st.session_state.tab1_boxes)
+                yolo_boxes = [item for item in st.session_state.tab1_boxes if item.get("human_validation") == "TP"]
+                unsure = [item for item in st.session_state.tab1_boxes if item.get("human_validation") not in {"TP", "FP"}]
+                missing_masks = [item for item in yolo_boxes if not item.get("mask_polygon")]
                 if invalid_ids:
-                    st.error(
-                        "Impossible d'enregistrer : corrigez d'abord les classes non standard "
-                        + ", ".join([f"#{cid}" for cid in invalid_ids])
-                        + " vers une classe de `best_2.pt`."
-                    )
+                    st.error("Corrigez les classes non standard : " + ", ".join(f"#{cid}" for cid in invalid_ids))
+                elif unsure:
+                    st.warning("Chaque bbox doit être TP ou FP avant l'intégration YOLO. Les Unsure restent hors dataset.")
+                elif missing_masks:
+                    st.warning("Une annotation segmentation humaine est requise pour chaque TP avant l'intégration YOLO (utilisez SAM2 ou corrigez le polygone).")
                 else:
                     persist_info = persist_annotation(
-                        filename,
-                        st.session_state.tab1_boxes,
-                        orig_w,
-                        orig_h,
-                        image_bgr=img_bgr,
-                        source=("video_tracking_sam2" if work_mode == "🎥 Une vidéo" else "tab1")
+                        filename, yolo_boxes, orig_w, orig_h, image_bgr=img_bgr,
+                        source=("video_tracking_sam2" if work_mode == "🎥 Une vidéo" else "tab1"),
                     )
-                    label_filename = os.path.basename(persist_info.get("label_path", ""))
-                    metadata_path = persist_info.get("metadata_path")
-                    rel_metadata_path = os.path.relpath(metadata_path, base_dir) if metadata_path else ""
+                    # ``sync_existing_split_item`` keeps legacy compatibility
+                    # by generating rectangle segments.  When a human/SAM2
+                    # polygon exists, preserve that segmentation as the
+                    # dataset_annote Ground Truth instead.
                     split_sync = persist_info.get("split_sync")
-
-                    if work_mode in {"📷 Une image", "🎥 Une vidéo"}:
-                        st.balloons()
-                        st.success(f"🎉 Enregistré avec succès dans 'Data7.off/' !\nFichier label: `{label_filename}`")
-                        if metadata_path:
-                            st.caption(f"📄 Métadonnées synchronisées : `{rel_metadata_path}`")
-                        if split_sync:
-                            st.caption(f"🧪 Copie split mise à jour : `{split_sync['split']}`")
-                    else:
-                        st.toast(f"✅ Sauvegardé : {filename}")
-                        if metadata_path:
-                            st.toast(f"🧾 Métadonnées : {os.path.basename(metadata_path)}")
-                        if curr_idx < total_imgs - 1:
-                            st.session_state.batch_index += 1
-                            st.session_state.canvas_key += 1
-                            st.rerun()
-                        else:
-                            st.balloons()
-                            st.success("🎉 Félicitations ! Le lot entier a été traité avec succès et injecté dans Data7.off !")
-                            if metadata_path:
-                                st.caption(f"📄 Dernière fiche métadonnées : `{rel_metadata_path}`")
-                            # Reset batch state
-                            st.session_state.batch_images = []
-                            st.session_state.batch_index = 0
-                            st.session_state.tab1_current_file = None
-                            st.session_state.tab1_current_image_key = None
-                            st.session_state.tab1_boxes = []
-                            st.session_state.canvas_key += 1
-                            st.rerun()
+                    segmentation_path = persist_info.get("segmentation_label_path")
+                    if split_sync and segmentation_path and os.path.exists(segmentation_path):
+                        shutil.copy2(segmentation_path, split_sync["label_path"])
+                    advance_after_destination(f"Image ajoutée au dataset YOLO actif ({dataset_curation.yolo_data_yaml}).")
+            elif add_reflection:
+                unvalidated = [item for item in st.session_state.tab1_boxes if item.get("human_validation") not in {"TP", "FP"}]
+                if unvalidated:
+                    st.warning("Validez chaque bbox en TP ou FP avant d'ajouter l'image au dataset Reflection.")
+                    st.stop()
+                reflection_items = []
+                for item in st.session_state.tab1_boxes:
+                    reflection_items.append({
+                        **item, "image_width": orig_w, "image_height": orig_h,
+                        "human_validation": item.get("human_validation"),
+                    })
+                result = dataset_curation.add_reflection_image(
+                    image_bytes=cv2.imencode(".jpg", img_bgr)[1].tobytes(),
+                    filename=filename, detections=reflection_items,
+                )
+                status = "label vide" if result["has_empty_label"] else f"{result['label_count']} vrai(s) défaut(s)"
+                advance_after_destination(f"Image ajoutée au dataset Reflection ({status}).")
+            elif add_none:
+                advance_after_destination("Image conservée uniquement pour le Brain Dataset — aucun dataset YOLO modifié.")
 
     else:
         # Premium Welcome Dashboard
@@ -3384,9 +3466,21 @@ if selected_section == NAV_SECTIONS[0]:
 if selected_section == NAV_SECTIONS[1]:
     st.subheader("📂 Dataset Data7.off")
     st.caption("Consultez les images validées, corrigez leurs boîtes, puis sauvegardez les modifications.")
+    st.caption(f"Dataset YOLO actif détecté : `{dataset_curation.yolo_data_yaml}`")
+    brain_summary = dataset_curation.brain_stats()
+    reflection_summary = dataset_curation.reflection_stats()
+    st.markdown("#### 🧠 Brain Dataset")
+    brain_cols = st.columns(4)
+    brain_cols[0].metric("BBoxes validées", brain_summary["total"])
+    brain_cols[1].metric("TP", brain_summary["tp"])
+    brain_cols[2].metric("FP", brain_summary["fp"])
+    brain_cols[3].metric("FP Reflection", brain_summary["fp_reflection"])
+    if brain_summary["by_class"]:
+        st.dataframe(brain_summary["by_class"], hide_index=True, use_container_width=True)
+    st.caption(f"Reflection Dataset — images : {reflection_summary['images']} · labels vides : {reflection_summary['empty_labels']} · images avec vrais défauts : {reflection_summary['images_with_defects']}")
     
     # Path settings
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = APP_BASE_DIR
     data7_dir = os.path.join(base_dir, "Data7.off")
     images_dir = os.path.join(data7_dir, "images")
     labels_dir = os.path.join(data7_dir, "labels")
@@ -3707,7 +3801,7 @@ if selected_section == NAV_SECTIONS[2]:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Helper to calculate stats
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = APP_BASE_DIR
     data7_dir = os.path.join(base_dir, "Data7.off")
     images_dir = os.path.join(data7_dir, "images")
     labels_dir = os.path.join(data7_dir, "labels")
@@ -4118,7 +4212,7 @@ if selected_section == NAV_SECTIONS[3]:
     import pandas as pd
     
     # Paths
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = APP_BASE_DIR
     dataset_dir = os.path.join(base_dir, "dataset_annote")
     history_file_path = os.path.join(base_dir, "models_history", "models_history.json")
     eval_runs_base = os.path.join(base_dir, "evaluation_runs")
@@ -5199,7 +5293,7 @@ if selected_section == NAV_SECTIONS[4]:
     from datetime import datetime
     import pandas as pd
     
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = APP_BASE_DIR
     final_yaml_path = os.path.join(base_dir, "final_classes.yaml")
     
     # 1. Load Cible Classes (final_classes.yaml)

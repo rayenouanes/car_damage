@@ -41,7 +41,7 @@ training_status.json.tmp
 __pycache__/
 *.py[cod]
 
-# Secrets Streamlit locaux
+# Secrets Streamlit locaux 
 .streamlit/credentials.toml
 
 backend/app/data/**

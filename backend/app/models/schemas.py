@@ -200,3 +200,30 @@ class UploadSummary(BaseModel):
     job_id: str
     images_created: int
     warnings: list[str] = Field(default_factory=list)
+
+
+class BBoxValidationRequest(BaseModel):
+    """A single human verdict; persisted immediately by the Brain service."""
+
+    image_path: str
+    model_version: str = "best_2.pt"
+    class_id: int = Field(ge=0)
+    class_name: str = Field(min_length=1)
+    bbox: list[float]
+    yolo_confidence: float = Field(ge=0, le=1)
+    human_validation: Literal["TP", "FP", "UNSURE"]
+    fp_reason: str | None = None
+    image_width: int = Field(gt=0)
+    image_height: int = Field(gt=0)
+    image_base64: str = Field(min_length=1)
+
+    @field_validator("bbox")
+    @classmethod
+    def validate_bbox_values(cls, value: list[float]) -> list[float]:
+        return BBoxModel(values=value).values
+
+
+class ReflectionDestinationRequest(BaseModel):
+    filename: str = Field(min_length=1)
+    detections: list[dict[str, Any]] = Field(default_factory=list)
+    image_base64: str = Field(min_length=1)

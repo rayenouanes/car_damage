@@ -157,6 +157,18 @@ Voir `deploy_aws.md` pour les etapes EC2, S3, IAM, securite reseau et sauvegarde
 4. Cliquer sur `Uploader`, puis `Lancer YOLO + active learning`.
 5. Les videos sont stockees dans `backend/app/data/uploads/{job_id}` et leurs frames dans `backend/app/data/frames/{job_id}`.
 
+## Trois datasets de curation
+
+Le workflow Streamlit sépare strictement les rôles :
+
+* le dataset YOLO actif est détecté depuis le `data.yaml` réellement utilisé (actuellement `dataset_annote/data.yaml`, alimenté par le flux historique `Data7.off`) ;
+* `hard_negatives_reflection/images`, `labels` et `metadata` conserve les reflets et autres faux positifs. Reflection n'est jamais une classe YOLO ; un exemple entièrement négatif reçoit un fichier label vide ;
+* `brain_training_dataset/brain_dataset.sqlite` contient une ligne par bbox validée (`TP`, `FP` ou `UNSURE`), avec la prédiction originale, le motif FP, l'identifiant stable et le chemin du crop. Le miroir JSONL `metadata/bbox_validations.jsonl` est réécrit depuis SQLite et les crops sont classés sous `crops/TP|FP/<classe>`.
+
+Dans le Scanner, cliquer TP/FP (ou Unsure) écrit immédiatement le Brain Dataset. Le choix explicite `Ajouter au dataset YOLO`, `Ajouter au dataset Reflection` ou `Ne pas ajouter` est indépendant. Pour le dataset YOLO segmentation, une bbox TP doit disposer d'un polygone humain/SAM2 ; une bbox prédite seule n'est jamais promue automatiquement en Ground Truth.
+
+L'API expose également `GET /api/datasets/summary`, `POST /api/datasets/brain/validations` et `POST /api/datasets/reflection/images`.
+
 La page `Analyse video + tracking` propose le workflow video dedie:
 
 1. upload d'une video;

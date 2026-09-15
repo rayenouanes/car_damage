@@ -1,12 +1,14 @@
 import os
 import csv
 import hashlib
+import io
 import json
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
+import zipfile
 from datetime import datetime
 from collections import defaultdict
 
@@ -1862,6 +1864,83 @@ def render_corrected_video(
             except Exception:
                 pass
 
+
+def extract_video_frames_for_annotation(
+    video_bytes: bytes,
+    video_name: str,
+    frame_count: int,
+    jpeg_quality: int = 95,
+) -> tuple[list[dict], bytes]:
+    """Extract a uniform set of frames and package them as a ZIP for annotation."""
+    if not video_bytes:
+        raise ValueError("La vidéo importée est vide.")
+    frame_count = max(1, int(frame_count))
+    suffix = os.path.splitext(video_name)[1].lower() or ".mp4"
+    temp_path = None
+    capture = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_video:
+            temp_video.write(video_bytes)
+            temp_path = temp_video.name
+
+        capture = cv2.VideoCapture(temp_path)
+        if not capture.isOpened():
+            raise ValueError("Impossible de lire cette vidéo. Vérifiez son format (MP4, MOV, AVI, MKV ou WEBM).")
+
+        total_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+        fps = float(capture.get(cv2.CAP_PROP_FPS) or 0.0)
+        if total_frames <= 0:
+            raise ValueError("Le nombre de frames de cette vidéo n'est pas lisible.")
+
+        if frame_count < 0:
+            duration_seconds = (total_frames / fps) if fps > 0 else total_frames
+            selected_count = max(1, int(np.ceil(duration_seconds)))
+        else:
+            selected_count = min(frame_count, total_frames)
+        if frame_count < 0 and fps > 0:
+            selected_indices = np.minimum(np.arange(selected_count) * fps, total_frames - 1).astype(np.int64).tolist()
+        else:
+            selected_indices = np.unique(np.linspace(0, total_frames - 1, selected_count, dtype=np.int64)).tolist()
+        safe_stem = "".join(
+            char if char.isalnum() else "_"
+            for char in os.path.splitext(os.path.basename(video_name))[0]
+        ).strip("_") or "video"
+
+        frames: list[dict] = []
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for output_index, frame_index in enumerate(selected_indices, start=1):
+                capture.set(cv2.CAP_PROP_POS_FRAMES, int(frame_index))
+                ok, frame_bgr = capture.read()
+                if not ok or frame_bgr is None:
+                    continue
+                ok, encoded = cv2.imencode(
+                    ".jpg", frame_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), int(jpeg_quality)]
+                )
+                if not ok:
+                    continue
+                filename = f"{safe_stem}_frame_{int(frame_index):06d}.jpg"
+                payload = encoded.tobytes()
+                archive.writestr(filename, payload)
+                frames.append({
+                    "filename": filename,
+                    "bytes": payload,
+                    "frame_index": int(frame_index),
+                    "time_seconds": (float(frame_index) / fps) if fps > 0 else None,
+                })
+
+        if not frames:
+            raise ValueError("Aucune frame exploitable n'a pu être extraite.")
+        return frames, zip_buffer.getvalue()
+    finally:
+        if capture is not None:
+            capture.release()
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+
 # Sidebar Design
 st.sidebar.markdown("<h2 style='text-align: center; color: #FFF; margin-bottom: 10px;'>🧠 Contrôles IA</h2>", unsafe_allow_html=True)
 
@@ -2087,14 +2166,16 @@ NAV_SECTIONS = [
     "📁 Dataset",
     "🔄 Réentraîner",
     "📊 Performances",
-    "🔍 Harmoniser",
+    "🎞️ Extraire des frames",
+    "🪞 Annotation SpecSeg Reflets",
 ]
 NAV_HELP = {
     NAV_SECTIONS[0]: "Importer une photo ou un lot, lancer la détection, corriger les boîtes.",
+    NAV_SECTIONS[5]: "Peindre des masques binaires de reflets pour SpecSeg.",
     NAV_SECTIONS[1]: "Voir et modifier les images déjà sauvegardées dans Data7.off.",
     NAV_SECTIONS[2]: "Relancer l'entraînement du modèle avec les annotations validées.",
     NAV_SECTIONS[3]: "Évaluer un modèle et comparer les versions disponibles.",
-    NAV_SECTIONS[4]: "Aligner les classes et générer le dataset final harmonisé.",
+    NAV_SECTIONS[4]: "Importer une vidéo, sélectionner des frames et les télécharger pour annotation.",
 }
 
 if "main_navigation" not in st.session_state or st.session_state.main_navigation not in NAV_SECTIONS:
@@ -2118,6 +2199,9 @@ nav_top = st.columns([1, 1.1, 1])
 with nav_top[1]:
     nav_button(NAV_SECTIONS[0], "🚀 Scanner", "nav_scanner")
 
+with nav_top[0]:
+    nav_button(NAV_SECTIONS[5], "🪞 Reflets SpecSeg", "nav_specseg")
+
 nav_mid = st.columns([1.15, 0.9, 1.15])
 with nav_mid[0]:
     nav_button(NAV_SECTIONS[1], "📁 Dataset", "nav_dataset")
@@ -2130,11 +2214,81 @@ nav_bottom = st.columns([1.15, 0.25, 1.15])
 with nav_bottom[0]:
     nav_button(NAV_SECTIONS[2], "🔄 Réentraîner", "nav_training")
 with nav_bottom[2]:
-    nav_button(NAV_SECTIONS[4], "🔍 Harmoniser", "nav_harmonize")
+    nav_button(NAV_SECTIONS[4], "🎞️ Extraire frames", "nav_extract_frames")
 
 st.markdown("---")
 
 # --- TAB 1: SCAN & ANNOTATE ---
+if selected_section == NAV_SECTIONS[5]:
+    st.markdown("<h3 style='color:#38BDF8;'>🪞 Annotation SpecSeg Reflets</h3>", unsafe_allow_html=True)
+    st.caption("Peignez uniquement les reflets visibles sur la carrosserie. Le masque enregistré est mono-canal, avec 0 = fond et 255 = reflet.")
+    specseg_root = os.path.join(base_dir, "specseg_reflection")
+    specseg_images = os.path.join(specseg_root, "images")
+    specseg_masks = os.path.join(specseg_root, "masks")
+    specseg_meta = os.path.join(specseg_root, "metadata")
+    for folder in (specseg_images, specseg_masks, specseg_meta, os.path.join(specseg_root, "exports")):
+        os.makedirs(folder, exist_ok=True)
+    collected_images = len([f for f in os.listdir(specseg_images) if os.path.isfile(os.path.join(specseg_images, f))])
+    collected_masks = len([f for f in os.listdir(specseg_masks) if f.lower().endswith('.png')])
+    st.metric("Images collectées", collected_images, delta=f"{collected_masks} masques sauvegardés")
+    st.info(f"Les images originales seront enregistrées dans : `{specseg_images}`\n\nLes masques seront enregistrés dans : `{specseg_masks}`")
+    specseg_uploads = st.file_uploader("Importer une ou plusieurs images", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key="specseg_upload")
+    specseg_upload = specseg_uploads[0] if specseg_uploads else None
+    if specseg_uploads:
+        st.caption(f"{len(specseg_uploads)} image(s) importée(s). Sélectionnez une image ci-dessous pour l’annoter.")
+        specseg_names = [f.name for f in specseg_uploads]
+        if st.session_state.get("specseg_next_name") in specseg_names:
+            st.session_state.specseg_selected_name = st.session_state.specseg_next_name
+            st.session_state.specseg_next_name = None
+        selected_specseg_name = st.selectbox("Image à annoter", specseg_names, key="specseg_selected_name")
+        specseg_upload = next(f for f in specseg_uploads if f.name == selected_specseg_name)
+    if specseg_upload:
+        raw = specseg_upload.getvalue()
+        digest = hashlib.sha256(raw).hexdigest()
+        ext = os.path.splitext(specseg_upload.name)[1].lower() or ".jpg"
+        image_name = f"{digest[:16]}{ext}"
+        image_path = os.path.join(specseg_images, image_name)
+        if not os.path.exists(image_path):
+            with open(image_path, "wb") as fh: fh.write(raw)
+        image = Image.open(io.BytesIO(raw)).convert("RGB")
+        existing_mask_path = os.path.join(specseg_masks, os.path.splitext(image_name)[0] + ".png")
+        if os.path.exists(existing_mask_path):
+            st.image(Image.open(existing_mask_path), caption="Masque déjà créé pour cette image", clamp=True)
+        canvas_w = min(900, image.width)
+        canvas_h = max(1, int(image.height * canvas_w / image.width))
+        st.session_state.setdefault("specseg_image_key", digest)
+        if st.session_state.specseg_image_key != digest:
+            st.session_state.specseg_image_key = digest
+            st.session_state.specseg_mask = None
+        mask_col, tool_col = st.columns([3, 1])
+        with tool_col:
+            drawing_mode = st.radio("Outil", ["freedraw", "line", "rect"], format_func=lambda x: {"freedraw":"Pinceau", "line":"Ligne", "rect":"Rectangle"}[x])
+            brush_size = st.slider("Taille du pinceau", 1, 80, 18)
+            no_reflection = st.checkbox("Aucun reflet", value=False)
+        with mask_col:
+            result = st_canvas(background_image=image, height=canvas_h, width=canvas_w, drawing_mode=drawing_mode, stroke_width=brush_size, stroke_color="#FFFFFF", fill_color="#FFFFFF10", key=f"specseg_canvas_{digest}")
+        if st.button("Sauvegarder masque", type="primary"):
+            mask = np.zeros((image.height, image.width), dtype=np.uint8)
+            if not no_reflection and result.image_data is not None:
+                alpha = np.asarray(Image.fromarray(result.image_data.astype("uint8")).resize((image.width, image.height)))[:, :, 3]
+                mask[alpha > 10] = 255
+            mask_name = os.path.splitext(image_name)[0] + ".png"
+            mask_path = os.path.join(specseg_masks, mask_name)
+            Image.fromarray(mask, mode="L").save(mask_path)
+            metadata = {"image_id": digest, "image_path": image_path, "mask_path": mask_path, "annotation_type": "reflection", "annotated": True, "no_reflection": bool(no_reflection), "timestamp": datetime.now().isoformat()}
+            with open(os.path.join(specseg_meta, os.path.splitext(image_name)[0] + ".json"), "w", encoding="utf-8") as fh: json.dump(metadata, fh, indent=2, ensure_ascii=False)
+            st.success(f"Masque sauvegardé : {mask_name}")
+            st.image(mask, caption="Masque binaire", clamp=True)
+            if specseg_uploads:
+                current_pos = [f.name for f in specseg_uploads].index(specseg_upload.name)
+                if current_pos + 1 < len(specseg_uploads):
+                    st.session_state.specseg_next_name = specseg_uploads[current_pos + 1].name
+                    st.info(f"Image suivante : {st.session_state.specseg_next_name}")
+                else:
+                    st.info("Toutes les images importées ont été traitées.")
+            st.session_state.specseg_saved_digest = digest
+            st.rerun()
+
 if selected_section == NAV_SECTIONS[0]:
     # Choose work mode
     st.markdown("<h3 style='color: #38BDF8; margin-top:0px;'>🎯 Importer et annoter</h3>", unsafe_allow_html=True)
@@ -3391,12 +3545,42 @@ if selected_section == NAV_SECTIONS[1]:
     images_dir = os.path.join(data7_dir, "images")
     labels_dir = os.path.join(data7_dir, "labels")
     
+    saved_images = sorted(
+        entry.name for entry in os.scandir(images_dir)
+        if entry.is_file() and entry.name.lower().endswith(('.png', '.jpg', '.jpeg', '.webp'))
+    ) if os.path.isdir(images_dir) else []
+    st.metric("Nombre d’images dans le dataset", len(saved_images))
+    st.caption(f"Dossier comptabilisé : {images_dir}")
+    dataset_v2_dir = os.path.join(base_dir, "dataset_annote_v2")
+    dataset_v2_zip_path = os.path.join(base_dir, "dataset_annote_v2.zip")
+    if st.button("📦 Préparer dataset YOLO v2 (80 / 10 / 10)", type="primary", use_container_width=True):
+        try:
+            result = subprocess.run([sys.executable, os.path.join(base_dir, "prepare_dataset_annote_v2.py")], cwd=base_dir, capture_output=True, text=True)
+            if result.returncode != 0:
+                raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "script arrêté")
+            st.success("Dataset YOLO v2 créé et vérifié dans `dataset_annote_v2/`.")
+            report_path = os.path.join(dataset_v2_dir, "integrity_report.json")
+            with open(report_path, encoding="utf-8") as report_file:
+                st.json(json.load(report_file))
+            shutil.make_archive(os.path.splitext(dataset_v2_zip_path)[0], "zip", root_dir=base_dir, base_dir="dataset_annote_v2")
+        except Exception as prep_error:
+            st.error(f"Préparation impossible : {prep_error}")
+    if os.path.isfile(dataset_v2_zip_path):
+        with open(dataset_v2_zip_path, "rb") as zip_file:
+            st.download_button(
+                "⬇️ Télécharger dataset_annote_v2.zip",
+                zip_file.read(),
+                file_name="dataset_annote_v2.zip",
+                mime="application/zip",
+                use_container_width=True,
+                key="download_dataset_v2",
+            )
+
     # Verify if directory exists and contains images
-    if not os.path.exists(images_dir) or len(os.listdir(images_dir)) == 0:
+    if not saved_images:
         st.info("ℹ️ Votre dossier 'Data7.off' est vide pour le moment. Allez sur le premier onglet pour analyser et enregistrer vos premières images.")
     else:
         # Get list of images
-        saved_images = [f for f in os.listdir(images_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
         
         # Select an image to consult / edit
         selected_image_name = st.selectbox("Sélectionnez l'image à inspecter/modifier :", saved_images, key="saved_img_selector")
@@ -3754,7 +3938,7 @@ if selected_section == NAV_SECTIONS[2]:
             st.error(
                 "Des anciennes classes non standard sont présentes : "
                 + ", ".join([f"#{cid}" for cid in invalid_training_ids])
-                + ". Corrigez ou harmonisez `Data7.off` avant d'entraîner."
+                + ". Corrigez les annotations dans l'onglet Dataset avant d'entraîner."
             )
         else:
             st.success(f"Le prochain entraînement utilisera les **{img_count} images** disponibles.")
@@ -3870,7 +4054,7 @@ if selected_section == NAV_SECTIONS[2]:
         st.error(
             "❌ Réentraînement bloqué : `Data7.off` contient des classes non standard "
             + ", ".join([f"#{cid}" for cid in invalid_training_ids])
-            + ". Utilisez l'onglet Dataset pour corriger ces boîtes ou l'onglet Harmoniser pour générer un dataset propre."
+            + ". Utilisez l'onglet Dataset pour corriger ces boîtes avant de relancer l'entraînement."
         )
         st.button("🔥 Lancer le réentraînement de l'IA", disabled=True, use_container_width=True)
     else:
@@ -5183,8 +5367,93 @@ if selected_section == NAV_SECTIONS[3]:
                 with deploy_col2:
                     st.write("Ce bouton copie le modèle choisi pour remplacer `best_2.pt`. Une sauvegarde de l'ancien `best_2.pt` est créée automatiquement.")
 
-# --- TAB 5: CLASS HARMONIZATION STUDIO ---
+# --- TAB 5: VIDEO FRAME EXTRACTION FOR ANNOTATION ---
 if selected_section == NAV_SECTIONS[4]:
+    st.markdown("<h2 style='color:#38BDF8;'>🎞️ Extraire des frames vidéo</h2>", unsafe_allow_html=True)
+    st.markdown(
+        "Importez une vidéo, choisissez le nombre de frames à conserver, puis téléchargez-les "
+        "dans une archive ZIP prête pour l'annotation. Les frames sont sélectionnées uniformément "
+        "sur toute la durée de la vidéo."
+    )
+
+    uploaded_video_for_frames = st.file_uploader(
+        "Déposez une vidéo à échantillonner",
+        type=["mp4", "mov", "avi", "mkv", "webm"],
+        key="frame_extraction_video_uploader",
+    )
+    frame_count_for_export = st.number_input("Nombre de frames à extraire", min_value=1, max_value=2000, value=12, step=1, help="Choisissez le nombre total de frames réparties sur toute la vidéo.")
+
+    if uploaded_video_for_frames is not None:
+        video_bytes_for_export = uploaded_video_for_frames.getvalue()
+        video_hash_for_export = hashlib.sha256(video_bytes_for_export).hexdigest()
+        if st.session_state.get("extracted_video_hash") != video_hash_for_export:
+            st.session_state.extracted_video_hash = video_hash_for_export
+            st.session_state.extracted_video_frames = []
+            st.session_state.extracted_video_zip = None
+            st.session_state.extracted_video_name = uploaded_video_for_frames.name
+
+        extract_clicked = st.button(
+            "⚡ Extraire les frames",
+            type="primary",
+            use_container_width=True,
+            key="extract_video_frames_button",
+        )
+        if extract_clicked:
+            try:
+                with st.spinner("Extraction des frames en cours…"):
+                    extracted_frames, extracted_zip = extract_video_frames_for_annotation(
+                        video_bytes_for_export,
+                        uploaded_video_for_frames.name,
+                        int(frame_count_for_export),
+                    )
+                st.session_state.extracted_video_frames = extracted_frames
+                st.session_state.extracted_video_zip = extracted_zip
+                st.session_state.extracted_video_count_requested = len(extracted_frames)
+                st.success(f"✅ {len(extracted_frames)} frame(s) extraite(s), prêtes à être annotées.")
+            except Exception as extraction_error:
+                st.session_state.extracted_video_frames = []
+                st.session_state.extracted_video_zip = None
+                st.error(f"Impossible d'extraire les frames : {extraction_error}")
+
+    extracted_frames_for_display = st.session_state.get("extracted_video_frames", [])
+    extracted_zip_for_download = st.session_state.get("extracted_video_zip")
+    if extracted_frames_for_display and extracted_zip_for_download:
+        safe_zip_stem = "".join(
+            char if char.isalnum() else "_"
+            for char in os.path.splitext(os.path.basename(st.session_state.get("extracted_video_name", "video")))[0]
+        ).strip("_") or "video"
+        st.download_button(
+            "⬇️ Télécharger toutes les frames (ZIP)",
+            data=extracted_zip_for_download,
+            file_name=f"{safe_zip_stem}_frames.zip",
+            mime="application/zip",
+            type="primary",
+            use_container_width=True,
+            key="download_extracted_video_frames_zip",
+        )
+        st.caption(
+            f"{len(extracted_frames_for_display)} image(s) dans l'archive. "
+            "Décompressez le ZIP puis importez les JPG dans votre outil d'annotation."
+        )
+
+        st.markdown("### Aperçu des frames sélectionnées")
+        preview_frames = extracted_frames_for_display[:24]
+        for row_start in range(0, len(preview_frames), 4):
+            preview_row = preview_frames[row_start:row_start + 4]
+            preview_columns = st.columns(4)
+            for column, frame_info in zip(preview_columns, preview_row):
+                with column:
+                    st.image(Image.open(io.BytesIO(frame_info["bytes"])), use_container_width=True)
+                    timestamp = frame_info.get("time_seconds")
+                    time_label = f" · {timestamp:.2f}s" if timestamp is not None else ""
+                    st.caption(f"{frame_info['filename']}{time_label}")
+
+        if len(extracted_frames_for_display) > 24:
+            st.caption("Aperçu limité aux 24 premières images ; l'archive contient bien toutes les frames extraites.")
+
+# Harmonisation désactivée : ce bloc historique est conservé uniquement pour ne pas perturber
+# les anciennes sessions Streamlit, mais il n'est plus accessible depuis la navigation.
+if False and selected_section == NAV_SECTIONS[4]:
     st.markdown("<h2 style='color:#38BDF8;'>🔍 Harmoniser les classes</h2>", unsafe_allow_html=True)
     st.markdown("""
         Alignez les identifiants de classes entre vos annotations, votre modèle et les datasets externes.

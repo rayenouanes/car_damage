@@ -8,6 +8,7 @@ from backend.app.config import CANONICAL_CLASSES, Settings
 from backend.app.database import Database
 from backend.app.routes import (
     correction_routes,
+    dataset_routes,
     export_routes,
     inference_routes,
     rag_routes,
@@ -15,6 +16,7 @@ from backend.app.routes import (
 )
 from backend.app.security import ApiKeyAuthMiddleware
 from backend.app.services.correction_service import CorrectionService
+from backend.app.services.dataset_curation_service import DatasetCurationService
 from backend.app.services.export_yolo_service import ExportYoloService
 from backend.app.services.frame_selection_service import FrameSelectionService
 from backend.app.services.llm_critic_service import LLMCriticService
@@ -32,6 +34,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings.ensure_directories()
     database = Database(settings.database_path)
     database.initialize()
+    app_dataset_service = DatasetCurationService(settings.project_root)
     rag_service = RAGService(
         ChromaVectorStore(settings.path("rag"), prefer_chroma=settings.use_chroma)
     )
@@ -50,6 +53,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(ApiKeyAuthMiddleware, api_key=settings.api_key)
     app.state.settings = settings
     app.state.database = database
+    app.state.dataset_curation_service = app_dataset_service
     app.state.video_service = VideoService(database, settings)
     app.state.yolo_service = YoloService(database, settings)
     app.state.rag_service = rag_service
@@ -69,6 +73,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         upload_routes.router,
         inference_routes.router,
         correction_routes.router,
+        dataset_routes.router,
         rag_routes.router,
         export_routes.router,
     ):
@@ -88,6 +93,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "auth_enabled": bool(settings.api_key),
             "app_env": settings.app_env,
             "classes": list(CANONICAL_CLASSES),
+            "yolo_data_yaml": str(app.state.dataset_curation_service.yolo_data_yaml),
+            "brain_dataset": str(app.state.dataset_curation_service.brain_root),
+            "reflection_dataset": str(app.state.dataset_curation_service.reflection_root),
         }
 
     return app
